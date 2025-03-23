@@ -4,7 +4,9 @@ services:
   app:
     build: .
     ports:
-      - "${SERVER_PORT:-6000}:6000"
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    env_file:
+      - .env.docker
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - DATABASE_NAME=${DATABASE_NAME}
@@ -13,7 +15,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=6000
+      - SERVER_PORT=${SERVER_PORT}
       - STATIC_FILES_PATH=/app/static
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_FILE=${LOG_FILE}
