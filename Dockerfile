@@ -41,7 +41,6 @@ WORKDIR /app
 # 从构建阶段复制编译好的程序和必要文件
 COPY --from=builder --chown=app:app /usr/src/app/target/release/card-platform .
 COPY --from=builder --chown=app:app /usr/src/app/static ./static
-COPY --from=builder --chown=app:app /usr/src/app/.env.docker ./.env
 
 # 暴露端口
 EXPOSE 8080
