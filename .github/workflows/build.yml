@@ -4,8 +4,9 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
+    # 只在创建标签时运行，不在提交代码时运行
+    # branches:
+    #   - main
   pull_request:
     branches:
       - main
@@ -16,6 +17,8 @@ env:
 
 jobs:
   build:
+    # 检查提交信息，如果包含 [skip ci] 或 [ci skip]，则跳过工作流
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:

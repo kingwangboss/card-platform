@@ -14,8 +14,8 @@ COPY . .
 # 删除现有的 Cargo.lock 并构建项目
 RUN rm -f Cargo.lock && cargo build --release
 
-# 使用更小的基础镜像作为运行环境
-FROM debian:bullseye-slim
+# 使用更新的基础镜像作为运行环境
+FROM debian:bookworm-slim
 
 # 使用清华源
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
@@ -23,7 +23,7 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.li
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
-    libssl1.1 \
+    libssl3 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
