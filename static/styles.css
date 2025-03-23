@@ -52,4 +52,102 @@ body {
 
 .api-endpoint li {
     margin-bottom: 0.5rem;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .card-body {
+        padding: 0.5rem;
+    }
+
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* 表格内容换行控制 */
+.table td.text-break {
+    word-break: break-all;
+    max-width: 150px;
+}
+
+/* 导航栏响应式调整 */
+.navbar-nav {
+    width: 100%;
+}
+
+@media (max-width: 992px) {
+    .navbar-nav .nav-item {
+        padding: 0.25rem 0;
+    }
+    
+    /* 确保折叠菜单正常显示 */
+    .navbar-collapse {
+        background-color: #343a40;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    /* 改善移动端的导航项间距 */
+    .navbar-nav {
+        margin-top: 0.5rem;
+    }
+
+    .navbar-nav .nav-item {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .navbar-nav .nav-item:last-child {
+        border-bottom: none;
+    }
+
+    /* 改善用户名和退出按钮的显示 */
+    .navbar-nav.ms-auto {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+}
+
+/* 确保折叠按钮可见和可点击 */
+.navbar-toggler {
+    padding: 0.5rem;
+    border-color: rgba(255,255,255,0.5);
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.25);
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* 模态框响应式调整 */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}
+
+/* 按钮组样式优化 */
+.btn-group {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* 表格响应式滚动优化 */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 0;
 } 

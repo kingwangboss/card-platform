@@ -1,4 +1,4 @@
-const { createApp, ref, onMounted, computed } = Vue;
+const { createApp, ref, onMounted, computed, watch } = Vue;
 
 const app = createApp({
     setup() {
@@ -31,11 +31,19 @@ const app = createApp({
         const users = ref([]);
         const showCreateUserModal = ref(false);
         const editingUser = ref(null);
-        const userForm = ref({ username: '', password: '', email: '', role: 'User' });
+        const userForm = ref({
+            username: '',
+            password: '',
+            email: '',
+            role: 'User'
+        });
 
         // API client setup
         const api = axios.create({
             baseURL: '/api',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         api.interceptors.request.use(config => {
@@ -60,18 +68,24 @@ const app = createApp({
             try {
                 loginError.value = '';
                 const response = await api.post('/users/login', loginForm.value);
+                console.log('Login response:', response.data);
                 token.value = response.data.token;
                 currentUser.value = response.data.user;
+                console.log('Current user after login:', currentUser.value);
                 localStorage.setItem('token', token.value);
                 localStorage.setItem('user', JSON.stringify(currentUser.value));
                 loginForm.value = { username: '', password: '' };
-                fetchCards();
-                if (currentUser.value.role === 'Admin') {
-                    fetchUsers();
+                
+                // 登录成功后加载数据
+                await fetchCards();
+                console.log('Current user role:', currentUser.value.role);
+                if (currentUser.value.role === 'ADMIN') {
+                    console.log('Fetching users for admin...');
+                    await fetchUsers();
                 }
             } catch (error) {
-                console.error('Login error:', error);
-                loginError.value = error.response?.data || '登录失败，请检查用户名和密码';
+                console.error('Login failed:', error);
+                loginError.value = error.response?.data?.message || '登录失败，请检查用户名和密码';
             }
         };
 
@@ -80,6 +94,7 @@ const app = createApp({
             currentUser.value = null;
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            users.value = [];
             currentView.value = 'cards';
         };
 
@@ -87,7 +102,16 @@ const app = createApp({
         const fetchCards = async () => {
             try {
                 const response = await api.get('/cards');
-                cards.value = response.data;
+                // 确保所有卡密数据的ID格式一致
+                cards.value = response.data.map(card => {
+                    if (card._id && typeof card._id === 'string') {
+                        return {
+                            ...card,
+                            _id: { $oid: card._id }
+                        };
+                    }
+                    return card;
+                });
             } catch (error) {
                 console.error('Error fetching cards:', error);
                 alert('获取卡密列表失败');
@@ -106,10 +130,41 @@ const app = createApp({
                     const response = await api.post('/cards/generate', {
                         duration_days: parseInt(cardForm.value.duration_days)
                     });
-                    cards.value.unshift(response.data);
+                    
+                    console.log('Generated card response:', response.data);
+                    
+                    // 处理返回的卡密数据
+                    let newCard = response.data;
+                    
+                    // 检查并规范化 _id 格式
+                    if (newCard._id) {
+                        if (typeof newCard._id === 'string') {
+                            newCard = {
+                                ...newCard,
+                                _id: { $oid: newCard._id }
+                            };
+                        }
+                    } else if (newCard.id) {
+                        newCard = {
+                            ...newCard,
+                            _id: { $oid: newCard.id }
+                        };
+                    } else {
+                        // 如果没有 _id 或 id，使用 card_number 作为临时 ID
+                        newCard = {
+                            ...newCard,
+                            _id: { $oid: newCard.card_number }
+                        };
+                    }
+                    
+                    console.log('Processed new card:', newCard);
+                    cards.value.unshift(newCard);
                 }
                 showGenerateCardModal.value = false;
                 cardForm.value = { duration_days: 30, count: 1 };
+                
+                // 生成完成后重新获取卡密列表
+                await fetchCards();
             } catch (error) {
                 console.error('Error generating card:', error);
                 alert('生成卡密失败');
@@ -122,16 +177,33 @@ const app = createApp({
             }
 
             try {
-                const cardId = card._id?.$oid;
+                console.log('Deleting card:', card);
                 
-                if (!cardId) {
-                    throw new Error('Card ID not found');
+                // 获取卡密ID
+                let cardId;
+                if (card._id?.$oid) {
+                    cardId = card._id.$oid;
+                } else if (typeof card._id === 'string') {
+                    cardId = card._id;
+                } else if (card.id) {
+                    cardId = card.id;
+                } else if (card.card_number) {
+                    // 如果没有 ID，使用卡号
+                    cardId = card.card_number;
+                } else {
+                    throw new Error('无法找到卡密ID');
                 }
 
+                console.log('Deleting card with ID:', cardId);
+                
                 await api.delete(`/cards/${cardId}`);
-                cards.value = cards.value.filter(c => c._id.$oid !== cardId);
+                
+                // 删除后重新获取卡密列表，确保数据同步
+                await fetchCards();
             } catch (error) {
-                alert('删除卡密失败: ' + (error.response?.data || error.message));
+                console.error('Error deleting card:', error);
+                console.error('Card data:', card);
+                alert('删除卡密失败: ' + (error.message || '未知错误'));
             }
         };
 
@@ -158,16 +230,19 @@ const app = createApp({
 
         // User methods
         const fetchUsers = async () => {
+            console.log('Fetching users...');
             try {
                 const response = await api.get('/users');
+                console.log('Users response:', response.data);
                 users.value = response.data;
             } catch (error) {
-                console.error('Error fetching users:', error);
+                console.error('Failed to fetch users:', error);
                 alert('获取用户列表失败');
             }
         };
 
         const editUser = (user) => {
+            console.log('Editing user:', user);
             editingUser.value = user;
             userForm.value = {
                 username: user.username,
@@ -181,13 +256,18 @@ const app = createApp({
         const closeUserModal = () => {
             showCreateUserModal.value = false;
             editingUser.value = null;
-            userForm.value = { username: '', password: '', email: '', role: 'User' };
+            userForm.value = {
+                username: '',
+                password: '',
+                email: '',
+                role: 'User'
+            };
         };
 
         const saveUser = async () => {
             try {
                 if (editingUser.value) {
-                    // Update existing user
+                    // 更新现有用户
                     const updateData = {
                         email: userForm.value.email,
                         role: userForm.value.role
@@ -196,24 +276,15 @@ const app = createApp({
                         updateData.password = userForm.value.password;
                     }
                     await api.put(`/users/${editingUser.value.id}`, updateData);
-                    
-                    // Update local data
-                    const index = users.value.findIndex(u => u.id === editingUser.value.id);
-                    if (index !== -1) {
-                        users.value[index] = {
-                            ...users.value[index],
-                            ...updateData,
-                            password: undefined
-                        };
-                    }
+                    await fetchUsers(); // 重新获取用户列表
                 } else {
-                    // Create new user
-                    const response = await api.post('/users/register', userForm.value);
-                    users.value.push(response.data);
+                    // 创建新用户
+                    await api.post('/users/register', userForm.value);
+                    await fetchUsers(); // 重新获取用户列表
                 }
                 closeUserModal();
             } catch (error) {
-                console.error('Error saving user:', error);
+                console.error('Failed to save user:', error);
                 alert(editingUser.value ? '更新用户失败' : '创建用户失败');
             }
         };
@@ -230,9 +301,9 @@ const app = createApp({
 
             try {
                 await api.delete(`/users/${user.id}`);
-                users.value = users.value.filter(u => u.id !== user.id);
+                await fetchUsers(); // 重新获取用户列表
             } catch (error) {
-                console.error('Error deleting user:', error);
+                console.error('Failed to delete user:', error);
                 alert('删除用户失败');
             }
         };
@@ -245,12 +316,26 @@ const app = createApp({
         };
 
         // Initialize
-        onMounted(() => {
+        onMounted(async () => {
+            console.log('Component mounted');
+            console.log('isLoggedIn:', isLoggedIn.value);
+            console.log('currentUser:', currentUser.value);
+            
             if (isLoggedIn.value) {
-                fetchCards();
-                if (currentUser.value.role === 'Admin') {
-                    fetchUsers();
+                await fetchCards();
+                if (currentUser.value?.role === 'ADMIN') {
+                    console.log('Fetching users on mount...');
+                    await fetchUsers();
                 }
+            }
+        });
+
+        // 添加一个 watch 来监视 currentView 的变化
+        watch(currentView, (newView) => {
+            console.log('Current view changed to:', newView);
+            if (newView === 'users' && currentUser.value?.role === 'ADMIN') {
+                console.log('Fetching users after view change...');
+                fetchUsers();
             }
         });
 
@@ -295,4 +380,10 @@ const app = createApp({
     }
 });
 
-app.mount('#app'); 
+app.mount('#app');
+
+// 添加全局错误处理
+app.config.errorHandler = (err, vm, info) => {
+    console.error('Vue error:', err);
+    console.error('Error info:', info);
+}; 

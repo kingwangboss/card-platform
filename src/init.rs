@@ -21,14 +21,14 @@ pub async fn init_admin_user(db: &Database) -> Result<(), mongodb::error::Error>
             Ok(())
         }
         None => {
-            // 创建新的管理员用户
+            // 创建新的管理员用户，使用 UserRole::Admin 而不是 "ADMIN"
             let password_hash = hash_password(&admin_password).expect("Failed to hash password");
             
             let admin = User::new(
                 admin_username.clone(),
                 password_hash,
                 None,
-                UserRole::Admin,
+                UserRole::Admin  // 使用枚举变体而不是字符串
             );
             
             collection.insert_one(&admin, None).await?;

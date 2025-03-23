@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum UserRole {
+    #[serde(alias = "ADMIN", alias = "Admin")]
     Admin,
+    #[serde(alias = "USER", alias = "User")]
     User,
 }
 
