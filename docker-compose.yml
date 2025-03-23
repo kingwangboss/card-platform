@@ -2,24 +2,24 @@ services:
   app:
     build: .
     ports:
-      - "6000:6000"
+      - "${SERVER_PORT:-6000}:${SERVER_PORT:-6000}"
     env_file:
       - .env.docker
     environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - DATABASE_NAME=${DATABASE_NAME}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS}
-      - ADMIN_USERNAME=${ADMIN_USERNAME}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017}
+      - DATABASE_NAME=${DATABASE_NAME:-card_platform}
+      - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_please_change}
+      - JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS:-24}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=6000
+      - SERVER_PORT=${SERVER_PORT:-6000}
       - STATIC_FILES_PATH=/app/static
-      - LOG_LEVEL=${LOG_LEVEL}
-      - LOG_FILE=${LOG_FILE}
-      - LOG_FILE_SIZE=${LOG_FILE_SIZE}
-      - LOG_FILE_COUNT=${LOG_FILE_COUNT}
-      - DEFAULT_CARD_LENGTH=${DEFAULT_CARD_LENGTH}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=${LOG_FILE:-/app/logs/card-platform.log}
+      - LOG_FILE_SIZE=${LOG_FILE_SIZE:-10485760}
+      - LOG_FILE_COUNT=${LOG_FILE_COUNT:-10}
+      - DEFAULT_CARD_LENGTH=${DEFAULT_CARD_LENGTH:-16}
     volumes:
       - logs:/app/logs
     restart: unless-stopped
