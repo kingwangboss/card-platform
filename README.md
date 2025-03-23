@@ -42,7 +42,7 @@ docker compose version
 
 2. 克隆项目
 ```bash
-git clone https://github.com/yourusername/card-platform.git
+git clone https://github.com/kingwangboss/card-platform.git
 cd card-platform
 ```
 
