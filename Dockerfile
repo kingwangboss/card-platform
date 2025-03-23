@@ -1,5 +1,5 @@
-# 使用官方 Rust 镜像作为构建环境
-FROM rust:1.75-slim as builder
+# 构建阶段
+FROM rust:1.85-slim as builder
 
 # 设置环境变量
 ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
