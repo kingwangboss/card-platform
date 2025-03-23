@@ -12,6 +12,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.85.0
 
 jobs:
   build:
@@ -31,38 +32,77 @@ jobs:
             asset_name: card-platform-windows-amd64.exe
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.target }}
+          components: rustfmt, clippy
 
-      - name: Build Cache
+      - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Install dependencies (Ubuntu)
+      - name: Install OpenSSL (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config
+          sudo apt-get install -y pkg-config libssl-dev
+
+      - name: Install OpenSSL (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          vcpkg integrate install
+          vcpkg install openssl:x64-windows-static
+
+      - name: Show Rust version
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          echo "Build completed"
+          ls -la target/${{ matrix.target }}/release/
 
       - name: Prepare assets
         shell: bash
         run: |
           mkdir -p release
-          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
-          cp -r static release/
-          cd release && tar -czf ../${{ matrix.asset_name }}.tar.gz *
+          if [ -f "target/${{ matrix.target }}/release/${{ matrix.artifact_name }}" ]; then
+            cp "target/${{ matrix.target }}/release/${{ matrix.artifact_name }}" release/
+          else
+            echo "Binary not found!"
+            exit 1
+          fi
+          if [ -d "static" ]; then
+            cp -r static release/
+          else
+            echo "Static directory not found!"
+            mkdir -p release/static
+          fi
+          cd release
+          tar -czvf "../${{ matrix.asset_name }}.tar.gz" *
+          echo "Archive created successfully"
+          ls -la ..
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.asset_name }}
           path: ${{ matrix.asset_name }}.tar.gz
+          if-no-files-found: error
 
   release:
     name: Create Release
@@ -71,14 +111,18 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v3
+
+      - name: List artifacts
+        run: ls -R
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            card-platform-linux-amd64.tar.gz
-            card-platform-windows-amd64.exe.tar.gz
+            */card-platform-linux-amd64.tar.gz
+            */card-platform-windows-amd64.exe.tar.gz
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
