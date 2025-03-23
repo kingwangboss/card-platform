@@ -79,7 +79,7 @@ async fn main() -> std::io::Result<()> {
 
     // 从环境变量获取服务器配置
     let host = env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "6000".to_string())
+    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "5005".to_string())
         .parse::<u16>()
         .expect("SERVER_PORT must be a number");
     let static_files_path = env::var("STATIC_FILES_PATH").unwrap_or_else(|_| "./static".to_string());

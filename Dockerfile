@@ -4,10 +4,9 @@ FROM rust:1.75-slim as builder
 # 设置工作目录
 WORKDIR /usr/src/app
 
-# 使用阿里云镜像源
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
-    && sed -i 's|security.debian.org|mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list \
-    && echo "deb http://mirrors.aliyun.com/debian-security bullseye-security main" > /etc/apt/sources.list.d/security.list
+# 使用清华源
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
+    && sed -i 's|security.debian.org/debian-security|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
 
 # 安装构建依赖
 RUN apt-get update && apt-get install -y \
@@ -24,10 +23,9 @@ RUN cargo build --release
 # 使用更小的基础镜像作为运行环境
 FROM debian:bullseye-slim
 
-# 使用阿里云镜像源
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
-    && sed -i 's|security.debian.org|mirrors.aliyun.com/debian-security|g' /etc/apt/sources.list \
-    && echo "deb http://mirrors.aliyun.com/debian-security bullseye-security main" > /etc/apt/sources.list.d/security.list
+# 使用清华源
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
+    && sed -i 's|security.debian.org/debian-security|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
@@ -53,7 +51,7 @@ COPY --from=builder --chown=app:app /usr/src/app/target/release/card-platform .
 COPY --from=builder --chown=app:app /usr/src/app/static ./static
 
 # 暴露端口
-EXPOSE 6000
+EXPOSE 5005
 
 # 启动程序
 CMD ["./card-platform"] 

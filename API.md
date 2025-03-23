@@ -1,7 +1,7 @@
 # 卡密管理系统 API 文档
 
 ## 基础信息
-- 基础URL: `http://localhost:6000/api`
+- 基础URL: `http://localhost:5005/api`
 - 认证方式: Bearer Token (除了验证卡密接口外，其他接口都需要在请求头中添加 `Authorization: Bearer {token}`)
 
 ## 卡密相关接口
