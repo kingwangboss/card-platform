@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡密管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app" v-cloak>
+        <!-- Login Form -->
+        <div v-if="!isLoggedIn" class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="text-center">卡密管理系统登录</h3>
+                        </div>
+                        <div class="card-body">
+                            <div v-if="loginError" class="alert alert-danger">{{ loginError }}</div>
+                            <form @submit.prevent="login">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">用户名</label>
+                                    <input type="text" class="form-control" id="username" v-model="loginForm.username" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">密码</label>
+                                    <input type="password" class="form-control" id="password" v-model="loginForm.password" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">登录</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div v-else>
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">卡密管理系统</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" @click.prevent="currentView = 'cards'">卡密管理</a>
+                            </li>
+                            <li class="nav-item" v-if="currentUser.role === 'Admin'">
+                                <a class="nav-link" href="#" @click.prevent="currentView = 'users'">用户管理</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" @click.prevent="currentView = 'api'">接口文档</a>
+                            </li>
+                        </ul>
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <span class="nav-link">{{ currentUser.username }}</span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" @click.prevent="logout">退出登录</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container mt-4">
+                <!-- Cards Management -->
+                <div v-if="currentView === 'cards'">
+                    <h2>卡密管理</h2>
+                    <div class="mb-3 d-flex gap-2">
+                        <button class="btn btn-primary" @click="showGenerateCardModal = true">生成卡密</button>
+                        <button class="btn btn-success" @click="exportCards">导出卡密</button>
+                        <div class="ms-auto">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="搜索卡号..." v-model="cardSearchQuery">
+                                <button class="btn btn-outline-secondary" type="button" @click="searchCards">搜索</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>卡号</th>
+                                            <th>有效期(天)</th>
+                                            <th>状态</th>
+                                            <th>激活时间</th>
+                                            <th>过期时间</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="card in filteredCards" :key="card.id">
+                                            <td>{{ card.card_number }}</td>
+                                            <td>{{ card.duration_days }}</td>
+                                            <td>
+                                                <span :class="card.is_activated ? 'badge bg-success' : 'badge bg-warning'">
+                                                    {{ card.is_activated ? '已激活' : '未激活' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ formatDate(card.activated_at_str) }}</td>
+                                            <td>{{ formatDate(card.expires_at_str) }}</td>
+                                            <td>{{ formatDate(card.created_at_str) }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-danger" @click="deleteCard(card)">删除</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-if="filteredCards.length === 0" class="text-center py-3">
+                                <p class="text-muted">没有找到卡密</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Management -->
+                <div v-if="currentView === 'users' && currentUser.role === 'Admin'">
+                    <h2>用户管理</h2>
+                    <div class="mb-3">
+                        <button class="btn btn-primary" @click="showCreateUserModal = true">创建用户</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>用户名</th>
+                                            <th>邮箱</th>
+                                            <th>角色</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="user in users" :key="user.id">
+                                            <td>{{ user.username }}</td>
+                                            <td>{{ user.email || '-' }}</td>
+                                            <td>{{ user.role === 'Admin' ? '管理员' : '普通用户' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary me-2" @click="editUser(user)">编辑</button>
+                                                <button class="btn btn-sm btn-danger" @click="deleteUser(user)" :disabled="user.username === currentUser.username">删除</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-if="users.length === 0" class="text-center py-3">
+                                <p class="text-muted">没有找到用户</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Documentation -->
+                <div v-if="currentView === 'api'">
+                    <h2>接口文档</h2>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="mb-0">卡密验证接口</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="api-endpoint mb-4">
+                                <h4>验证卡密</h4>
+                                <div class="mb-2">
+                                    <span class="badge bg-primary">POST</span>
+                                    <code>/api/cards/verify</code>
+                                </div>
+                                <p>验证卡密是否有效，如果未激活则自动激活。此接口不需要认证。</p>
+                                
+                                <h5>请求体:</h5>
+                                <pre class="bg-light p-3 rounded"><code>{
+  "card_number": "1pZKyLAywgUOEUqd"  // 要验证的卡密号码
+}</code></pre>
+                                
+                                <h5>响应示例 (未激活卡密):</h5>
+                                <pre class="bg-light p-3 rounded"><code>{
+  "message": "Card activated successfully",
+  "card": {
+    "card_number": "1pZKyLAywgUOEUqd",
+    "duration_days": 30,
+    "is_activated": true,
+    "activated_at_str": "2024-01-01T12:00:00Z",
+    "expires_at_str": "2024-01-31T12:00:00Z"
+  }
+}</code></pre>
+
+                                <h5>响应示例 (已激活且有效的卡密):</h5>
+                                <pre class="bg-light p-3 rounded"><code>{
+  "card_number": "1pZKyLAywgUOEUqd",
+  "duration_days": 30,
+  "is_activated": true,
+  "activated_at_str": "2024-01-01T12:00:00Z",
+  "expires_at_str": "2024-01-31T12:00:00Z"
+}</code></pre>
+
+                                <h5>错误响应示例:</h5>
+                                <pre class="bg-light p-3 rounded"><code>{
+  "error": "Card expired",
+  "message": "This card has expired",
+  "card": {
+    "card_number": "1pZKyLAywgUOEUqd",
+    "duration_days": 30,
+    "is_activated": true,
+    "activated_at_str": "2024-01-01T12:00:00Z",
+    "expires_at_str": "2024-01-31T12:00:00Z"
+  }
+}</code></pre>
+
+                                <h5>可能的错误响应:</h5>
+                                <ul>
+                                    <li><strong>404 Not Found</strong>: 卡密不存在</li>
+                                    <li><strong>400 Bad Request</strong>: 卡密已过期</li>
+                                    <li><strong>500 Internal Server Error</strong>: 服务器内部错误</li>
+                                </ul>
+
+                                <h5>注意事项:</h5>
+                                <ul>
+                                    <li>卡密一旦激活就开始计时，无法暂停或重置</li>
+                                    <li>过期的卡密无法重新激活</li>
+                                    <li>卡密有效期从激活时间开始计算</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Card Modal -->
+            <div class="modal" tabindex="-1" :class="{ 'd-block': showGenerateCardModal, 'show': showGenerateCardModal }">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">生成卡密</h5>
+                            <button type="button" class="btn-close" @click="showGenerateCardModal = false"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form @submit.prevent="generateCard">
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">有效期(天)</label>
+                                    <select class="form-select" id="duration" v-model="cardForm.duration_days" required>
+                                        <option value="1">1天</option>
+                                        <option value="7">7天</option>
+                                        <option value="15">15天</option>
+                                        <option value="30">30天</option>
+                                        <option value="90">90天</option>
+                                        <option value="365">365天</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="count" class="form-label">生成数量</label>
+                                    <input type="number" class="form-control" id="count" v-model="cardForm.count" min="1" max="100" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">生成</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop fade show" v-if="showGenerateCardModal"></div>
+
+            <!-- Create User Modal -->
+            <div class="modal" tabindex="-1" :class="{ 'd-block': showCreateUserModal, 'show': showCreateUserModal }">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ editingUser ? '编辑用户' : '创建用户' }}</h5>
+                            <button type="button" class="btn-close" @click="closeUserModal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form @submit.prevent="saveUser">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">用户名</label>
+                                    <input type="text" class="form-control" id="username" v-model="userForm.username" required :disabled="editingUser">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">密码{{ editingUser ? ' (留空表示不修改)' : '' }}</label>
+                                    <input type="password" class="form-control" id="password" v-model="userForm.password" :required="!editingUser">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">邮箱 (可选)</label>
+                                    <input type="email" class="form-control" id="email" v-model="userForm.email">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="role" class="form-label">角色</label>
+                                    <select class="form-select" id="role" v-model="userForm.role" required>
+                                        <option value="User">普通用户</option>
+                                        <option value="Admin">管理员</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">保存</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop fade show" v-if="showCreateUserModal"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 

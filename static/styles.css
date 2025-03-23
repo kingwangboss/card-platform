@@ -1,0 +1,55 @@
+[v-cloak] {
+    display: none;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.9em;
+}
+
+/* API 文档样式 */
+.api-endpoint {
+    border-left: 4px solid #6c757d;
+    padding-left: 15px;
+    margin-bottom: 2rem;
+}
+
+.api-endpoint h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.api-endpoint code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+.api-endpoint pre {
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+}
+
+.api-endpoint ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.api-endpoint li {
+    margin-bottom: 0.5rem;
+} 
