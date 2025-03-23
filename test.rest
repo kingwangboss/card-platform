@@ -35,7 +35,7 @@ POST http://localhost:5005/api/cards/verify
 Content-Type: application/json
 
 {
-  "card_number": "s5So8ZcNIUl08BwP"
+  "card_number": "uLcJwOVg7uCvU9Qf"
 }
 
 ### 再次验证同一卡密 (已激活)
