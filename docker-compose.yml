@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   app:
     build: .
     ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
+      - "6000:6000"
     env_file:
       - .env.docker
     environment:
@@ -15,7 +13,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=${SERVER_PORT}
+      - SERVER_PORT=6000
       - STATIC_FILES_PATH=/app/static
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_FILE=${LOG_FILE}

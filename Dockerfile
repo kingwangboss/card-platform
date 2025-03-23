@@ -4,6 +4,10 @@ FROM rust:1.75-slim as builder
 # 设置工作目录
 WORKDIR /usr/src/app
 
+# 使用阿里云镜像源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
+    && sed -i 's/security.debian.org/mirrors.aliyun.com\/debian-security/g' /etc/apt/sources.list
+
 # 安装构建依赖
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -18,6 +22,10 @@ RUN cargo build --release
 
 # 使用更小的基础镜像作为运行环境
 FROM debian:bullseye-slim
+
+# 使用阿里云镜像源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
+    && sed -i 's/security.debian.org/mirrors.aliyun.com\/debian-security/g' /etc/apt/sources.list
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
