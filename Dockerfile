@@ -1,24 +1,18 @@
 # 使用官方 Rust 镜像作为构建环境
 FROM rust:1.75-slim as builder
 
+# 设置环境变量
+ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+
 # 设置工作目录
 WORKDIR /usr/src/app
-
-# 使用清华源
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list \
-    && sed -i 's|security.debian.org/debian-security|mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
-
-# 安装构建依赖
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 # 复制项目文件
 COPY . .
 
-# 构建项目
-RUN cargo build --release
+# 删除现有的 Cargo.lock 并构建项目
+RUN rm -f Cargo.lock && cargo build --release
 
 # 使用更小的基础镜像作为运行环境
 FROM debian:bullseye-slim
