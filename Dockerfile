@@ -43,7 +43,7 @@ COPY --from=builder --chown=app:app /usr/src/app/target/release/card-platform .
 COPY --from=builder --chown=app:app /usr/src/app/static ./static
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 6000
 
 # 启动程序
 CMD ["./card-platform"] 

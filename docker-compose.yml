@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "${SERVER_PORT:-6000}:6000"
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - DATABASE_NAME=${DATABASE_NAME}
@@ -13,7 +13,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8080
+      - SERVER_PORT=6000
       - STATIC_FILES_PATH=/app/static
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_FILE=${LOG_FILE}

@@ -1,5 +1,5 @@
 ### 生成卡密 - 1天有效期
-POST http://localhost:8080/api/cards/generate
+POST http://localhost:6000/api/cards/generate
 Content-Type: application/json
 
 {
@@ -7,7 +7,7 @@ Content-Type: application/json
 }
 
 ### 生成卡密 - 7天有效期
-POST http://localhost:8080/api/cards/generate
+POST http://localhost:6000/api/cards/generate
 Content-Type: application/json
 
 {
@@ -15,7 +15,7 @@ Content-Type: application/json
 }
 
 ### 生成卡密 - 15天有效期
-POST http://localhost:8080/api/cards/generate
+POST http://localhost:6000/api/cards/generate
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 }
 
 ### 生成卡密 - 30天有效期
-POST http://localhost:8080/api/cards/generate
+POST http://localhost:6000/api/cards/generate
 Content-Type: application/json
 
 {
@@ -31,7 +31,7 @@ Content-Type: application/json
 }
 
 ### 验证卡密 (未激活的卡密会自动激活)
-POST http://localhost:8080/api/cards/verify
+POST http://localhost:6000/api/cards/verify
 Content-Type: application/json
 
 {
@@ -39,7 +39,7 @@ Content-Type: application/json
 }
 
 ### 再次验证同一卡密 (已激活)
-POST http://localhost:8080/api/cards/verify
+POST http://localhost:6000/api/cards/verify
 Content-Type: application/json
 
 {
@@ -47,7 +47,7 @@ Content-Type: application/json
 }
 
 ### 手动激活卡密 (可选，通常不需要)
-POST http://localhost:8080/api/cards/activate
+POST http://localhost:6000/api/cards/activate
 Content-Type: application/json
 
 {
@@ -55,7 +55,7 @@ Content-Type: application/json
 }
 
 ### 验证已过期的卡密 (需要等待卡密过期)
-POST http://localhost:8080/api/cards/verify
+POST http://localhost:6000/api/cards/verify
 Content-Type: application/json
 
 {
