@@ -125,6 +125,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write  # 添加发布权限
 
     steps:
       - name: Download all artifacts
@@ -137,8 +139,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            card-platform-linux-amd64/*.tar.gz
-            card-platform-windows-amd64/*.zip
+            **/card-platform-linux-amd64.tar.gz
+            **/card-platform-windows-amd64.zip
+          draft: false
+          prerelease: false
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
