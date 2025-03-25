@@ -6,7 +6,7 @@ services:
     env_file:
       - .env.docker
     environment:
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://your-remote-mongodb-uri}
       - DATABASE_NAME=${DATABASE_NAME:-card_platform}
       - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_please_change}
       - JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS:-24}
@@ -24,17 +24,7 @@ services:
     volumes:
       - ./config:/app/config
       - logs:/app/logs
-    depends_on:
-      - mongodb
     restart: unless-stopped
 
-  mongodb:
-    image: mongo:latest
-    volumes:
-      - mongodb_data:/data/db
-    ports:
-      - "27017:27017"
-
 volumes:
-  logs:
-  mongodb_data: 
+  logs: 
