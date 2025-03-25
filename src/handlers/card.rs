@@ -6,7 +6,7 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use crate::{
     auth::AuthenticatedUser,
-    models::{Card, CreateCardRequest, ActivateCardRequest, VerifyCardRequest},
+    models::{Card, CreateCardRequest, ActivateCardRequest, VerifyCardRequest, UserRole},
     AppState,
 };
 
@@ -41,7 +41,10 @@ async fn generate_card(
         .map(char::from)
         .collect();
 
-    let card = Card::new(card_number.clone(), req.duration_days);
+    // 创建卡密时记录创建者ID
+    let mut card = Card::new(card_number.clone(), req.duration_days);
+    card.created_by = Some(user.user_id.clone());
+    card.created_by_username = Some(user.username.clone());
 
     match state.db.collection::<Card>("cards")
         .insert_one(&card, None)
@@ -240,19 +243,31 @@ async fn get_all_cards(
     state: web::Data<AppState>,
     user: AuthenticatedUser,
 ) -> HttpResponse {
-    info!("User '{}' is fetching all cards", user.username);
+    info!("User '{}' is fetching cards", user.username);
     
     let collection = state.db.collection::<Card>("cards");
     
-    // 查询所有卡密
-    match collection.find(None, None).await {
+    // 根据用户角色决定查询条件
+    let filter = match user.role {
+        UserRole::Admin => None, // 管理员可以查看所有卡密
+        _ => Some(doc! { "created_by": &user.user_id }), // 普通用户只能查看自己的卡密
+    };
+    
+    // 查询卡密
+    match collection.find(filter, None).await {
         Ok(cursor) => {
             match futures::stream::TryStreamExt::try_collect::<Vec<Card>>(cursor).await {
                 Ok(cards) => HttpResponse::Ok().json(cards),
-                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+                Err(e) => {
+                    error!("Error collecting cards: {}", e);
+                    HttpResponse::InternalServerError().body(e.to_string())
+                },
             }
         }
-        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+        Err(e) => {
+            error!("Error finding cards: {}", e);
+            HttpResponse::InternalServerError().body(e.to_string())
+        },
     }
 }
 
@@ -274,13 +289,18 @@ async fn delete_card(
     };
 
     let collection = state.db.collection::<Card>("cards");
-    let filter = doc! { "_id": object_id };
+    
+    // 根据用户角色决定删除条件
+    let filter = match user.role {
+        UserRole::Admin => doc! { "_id": object_id }, // 管理员可以删除任何卡密
+        _ => doc! { "_id": object_id, "created_by": &user.user_id }, // 普通用户只能删除自己的卡密
+    };
 
     match collection.delete_one(filter, None).await {
         Ok(result) => {
             if result.deleted_count == 0 {
-                warn!("Card with ID '{}' not found for deletion", id);
-                HttpResponse::NotFound().body("Card not found")
+                warn!("Card with ID '{}' not found for deletion or user lacks permission", id);
+                HttpResponse::NotFound().body("Card not found or you don't have permission to delete it")
             } else {
                 info!("Card with ID '{}' deleted successfully by user '{}'", id, user.username);
                 HttpResponse::Ok().body("Card deleted successfully")

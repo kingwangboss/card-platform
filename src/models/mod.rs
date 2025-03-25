@@ -34,6 +34,8 @@ pub struct Card {
     pub activated_at_str: Option<String>,
     pub expires_at_str: Option<String>,
     pub created_at_str: String,
+    pub created_by: Option<String>,           // 添加创建者ID
+    pub created_by_username: Option<String>,  // 添加创建者用户名
     
     #[serde(skip_serializing, skip_deserializing)]
     pub activated_at: Option<DateTime<Utc>>,
@@ -57,6 +59,8 @@ impl Card {
             activated_at_str: None,
             expires_at_str: None,
             created_at_str: now.to_rfc3339(),
+            created_by: None,           // 初始化为None
+            created_by_username: None,  // 初始化为None
         }
     }
     
@@ -73,6 +77,8 @@ impl Card {
             activated_at_str: Some(now.to_rfc3339()),
             expires_at_str: Some(expires_at.to_rfc3339()),
             created_at_str: self.created_at_str.clone(),
+            created_by: self.created_by.clone(),           // 保留创建者ID
+            created_by_username: self.created_by_username.clone(),  // 保留创建者用户名
         }
     }
 } 

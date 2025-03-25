@@ -30,7 +30,7 @@ const app = Vue.createApp({
         }
       }
     } catch (error) {
-      console.error('Failed to fetch user info:', error)
+      localStorage.removeItem('token')
     }
   },
   // ... 其他方法

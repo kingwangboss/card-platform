@@ -45,7 +45,7 @@
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav">
+                        <ul class="navbar-nav me-auto">
                             <li class="nav-item">
                                 <a class="nav-link" href="#" @click.prevent="currentView = 'cards'">卡密管理</a>
                             </li>
@@ -56,14 +56,10 @@
                                 <a class="nav-link" href="#" @click.prevent="currentView = 'api'">接口文档</a>
                             </li>
                         </ul>
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <span class="nav-link">{{ currentUser.username }}</span>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" @click.prevent="logout">退出登录</a>
-                            </li>
-                        </ul>
+                        <div class="d-flex align-items-center">
+                            <span class="text-white me-3">{{ currentUser.username }}</span>
+                            <button class="btn btn-outline-light btn-sm" style="white-space: nowrap !important; min-width: fit-content !important;" @click="logout">退出登录</button>
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -99,6 +95,7 @@
                                             <th class="d-none d-md-table-cell">激活时间</th>
                                             <th class="d-none d-md-table-cell">过期时间</th>
                                             <th class="d-none d-md-table-cell">创建时间</th>
+                                            <th v-if="currentUser && currentUser.role === 'ADMIN'" class="d-none d-md-table-cell">创建者</th>
                                             <th>操作</th>
                                         </tr>
                                     </thead>
@@ -114,6 +111,9 @@
                                             <td class="d-none d-md-table-cell">{{ formatDate(card.activated_at_str) }}</td>
                                             <td class="d-none d-md-table-cell">{{ formatDate(card.expires_at_str) }}</td>
                                             <td class="d-none d-md-table-cell">{{ formatDate(card.created_at_str) }}</td>
+                                            <td v-if="currentUser && currentUser.role === 'ADMIN'" class="d-none d-md-table-cell">
+                                                {{ card.created_by_username || '-' }}
+                                            </td>
                                             <td>
                                                 <button class="btn btn-sm btn-danger" @click="deleteCard(card)">删除</button>
                                             </td>
@@ -131,12 +131,6 @@
                 <!-- Users Management -->
                 <div v-if="currentView === 'users' && currentUser && currentUser.role === 'ADMIN'">
                     <h2>用户管理</h2>
-                    <div class="debug-info" style="display: none;">
-                        <p>Current View: {{ currentView }}</p>
-                        <p>Current User: {{ currentUser }}</p>
-                        <p>User Role: {{ currentUser?.role }}</p>
-                        <p>Users Count: {{ users.length }}</p>
-                    </div>
                     <div class="mb-3">
                         <button class="btn btn-primary" @click="showCreateUserModal = true">创建用户</button>
                     </div>

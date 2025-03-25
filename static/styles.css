@@ -81,47 +81,63 @@ body {
     max-width: 150px;
 }
 
-/* 导航栏响应式调整 */
-.navbar-nav {
-    width: 100%;
+/* 导航栏样式优化 */
+.navbar .navbar-collapse {
+    display: flex !important;
+    justify-content: space-between;
 }
 
-@media (max-width: 992px) {
-    .navbar-nav .nav-item {
-        padding: 0.25rem 0;
+.navbar .d-flex {
+    white-space: nowrap;
+}
+
+.navbar .text-white {
+    opacity: 0.9;
+}
+
+.user-controls {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.user-controls .username {
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+}
+
+.logout-btn {
+    white-space: nowrap !important;
+    min-width: max-content !important;
+    padding: 4px 12px !important;
+    font-size: 14px !important;
+}
+
+@media (max-width: 991.98px) {
+    .navbar .navbar-collapse {
+        flex-direction: column;
+        align-items: flex-start;
     }
     
-    /* 确保折叠菜单正常显示 */
-    .navbar-collapse {
-        background-color: #343a40;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-    }
-
-    /* 改善移动端的导航项间距 */
-    .navbar-nav {
-        margin-top: 0.5rem;
-    }
-
-    .navbar-nav .nav-item {
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .navbar-nav .nav-item:last-child {
-        border-bottom: none;
-    }
-
-    /* 改善用户名和退出按钮的显示 */
-    .navbar-nav.ms-auto {
+    .navbar .d-flex {
         margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px solid rgba(255,255,255,0.1);
+        width: 100%;
     }
 }
 
-/* 确保折叠按钮可见和可点击 */
+/* 确保按钮在小屏幕上也能正确显示 */
+@media (max-width: 767.98px) {
+    .navbar-nav .btn {
+        width: auto;
+        margin: 0;
+    }
+}
+
+/* 确保导航栏折叠按钮可见 */
 .navbar-toggler {
-    padding: 0.5rem;
     border-color: rgba(255,255,255,0.5);
 }
 
@@ -150,4 +166,23 @@ body {
 .table-responsive {
     -webkit-overflow-scrolling: touch;
     margin-bottom: 0;
+}
+
+/* 删除之前的 .nowrap-btn 类 */
+.btn.btn-outline-light {
+    white-space: nowrap !important;
+    min-width: fit-content !important;
+    padding: 4px 12px !important;
+    font-size: 14px !important;
+    display: inline-block !important;
+    transform: scale(0.98) !important; /* 稍微缩小文字 */
+    letter-spacing: -0.5px !important; /* 减小字间距 */
+}
+
+/* 确保按钮在小屏幕上也不换行 */
+@media (max-width: 991.98px) {
+    .btn.btn-outline-light {
+        width: auto !important;
+        flex-shrink: 0 !important;
+    }
 } 
