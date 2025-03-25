@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 -U app
 
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/static
+RUN mkdir -p /app/logs /app/static /app/config
 RUN chown -R app:app /app
 
 # 切换到非 root 用户
@@ -43,6 +43,8 @@ WORKDIR /app
 # 从构建阶段复制编译好的程序和必要文件
 COPY --from=builder --chown=app:app /usr/src/app/target/release/card-platform .
 COPY --from=builder --chown=app:app /usr/src/app/static ./static
+COPY --from=builder --chown=app:app /usr/src/app/.env.example ./config/.env.example
+COPY --from=builder --chown=app:app /usr/src/app/config/* ./config/
 
 # 暴露端口
 EXPOSE 5005
