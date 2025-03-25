@@ -82,11 +82,10 @@ jobs:
       - name: Prepare assets (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p release/config
+          mkdir -p release
           cp target/release/card-platform release/
           cp -r static release/
-          cp .env.example release/config/
-          cp -r config/* release/config/ || true
+          cp .env.example release/.env
           cd release
           tar -czvf "../${{ matrix.asset_name }}.tar.gz" *
           echo "Archive created successfully"
@@ -96,11 +95,10 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          mkdir -p release/config
+          mkdir -p release
           cp target/release/card-platform.exe release/
           cp -r static release/
-          cp .env.example release/config/
-          cp -r config/* release/config/ || true
+          cp .env.example release/.env
           cd release
           7z a -tzip "../${{ matrix.asset_name }}.zip" *
           echo "Archive created successfully"
