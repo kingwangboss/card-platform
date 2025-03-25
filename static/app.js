@@ -1,3 +1,14 @@
+// 在文件顶部添加调试开关
+const DEBUG = false; // 设置为 false 可禁用所有调试输出
+
+// 创建自定义日志函数
+const logger = {
+  log: (...args) => DEBUG && console.log(...args),
+  info: (...args) => DEBUG && console.info(...args),
+  warn: (...args) => console.warn(...args), // 警告通常保留
+  error: (...args) => console.error(...args) // 错误通常保留
+};
+
 const { createApp, ref, onMounted, computed, watch } = Vue;
 
 const app = createApp({
@@ -74,11 +85,18 @@ const app = createApp({
                 localStorage.setItem('user', JSON.stringify(currentUser.value));
                 loginForm.value = { username: '', password: '' };
                 
+                // 使用 logger 替代 console.log
+                logger.log('Login response:', response.data);
+                logger.log('Current user after login:', currentUser.value);
+                
                 await fetchCards();
                 if (currentUser.value.role === 'ADMIN') {
+                    logger.log('Current user role:', currentUser.value.role);
+                    logger.log('Fetching users for admin...');
                     await fetchUsers();
                 }
             } catch (error) {
+                logger.error('Login error:', error);
                 loginError.value = error.response?.data?.message || '登录失败，请检查用户名和密码';
             }
         };
@@ -293,6 +311,7 @@ const app = createApp({
 
         // Initialize
         onMounted(async () => {
+            logger.log('Component mounted');
             const token = localStorage.getItem('token');
             if (token) {
                 token.value = token;
@@ -307,14 +326,18 @@ const app = createApp({
                 const response = await api.get('/users/current');
                 currentUser.value = response.data;
                 isLoggedIn.value = true;
+                logger.log('Current user fetched:', currentUser.value);
             } catch (error) {
+                logger.error('Error fetching current user:', error);
                 logout();
             }
         };
 
         // 添加一个 watch 来监视 currentView 的变化
         watch(currentView, (newView) => {
+            logger.log('Current view changed to:', newView);
             if (newView === 'users' && currentUser.value?.role === 'ADMIN') {
+                logger.log('Fetching users after view change...');
                 fetchUsers();
             }
         });
