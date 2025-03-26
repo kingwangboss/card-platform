@@ -311,4 +311,38 @@ body {
     word-break: break-all;
     word-wrap: break-word;
     max-width: 150px;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 为卡片添加不同的状态颜色 */
+.card.border-success {
+    border-width: 2px;
+}
+
+.card.border-warning {
+    border-width: 2px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .card-text {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
 } 
