@@ -4,6 +4,12 @@ FROM rust:1.85-slim as builder
 # 设置环境变量
 ENV RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+# 强制使用 HTTP/1.1 避免 HTTP/2 流错误
+ENV CARGO_HTTP_MULTIPLEXING=false
+ENV CARGO_HTTP_TIMEOUT=300
+ENV CARGO_HTTP_CAINFO=/etc/ssl/certs/ca-certificates.crt
+ENV CARGO_HTTP_CHECK_REVOKE=false
+ENV CARGO_HTTP_RETRY=5
 
 # 设置工作目录
 WORKDIR /usr/src/app

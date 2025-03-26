@@ -1,6 +1,10 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      cache_from:
+        - card-platform:latest
+    image: card-platform:latest
     ports:
       - "${SERVER_PORT:-5005}:${SERVER_PORT:-5005}"
     env_file:
