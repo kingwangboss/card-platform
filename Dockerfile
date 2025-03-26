@@ -8,11 +8,21 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 # 设置工作目录
 WORKDIR /usr/src/app
 
-# 复制项目文件
+# 首先只复制 Cargo.toml 和 Cargo.lock (如果存在)
+COPY Cargo.toml ./
+COPY Cargo.lock ./
+
+# 创建一个虚拟的 src/main.rs 文件，以便 cargo 可以解析依赖项
+RUN mkdir -p src && \
+    echo "fn main() {println!(\"dummy\")}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src/
+
+# 现在复制实际的源代码
 COPY . .
 
-# 删除现有的 Cargo.lock 并构建项目
-RUN rm -f Cargo.lock && cargo build --release
+# 重新构建项目，这次会使用缓存的依赖项
+RUN cargo build --release
 
 # 使用更新的基础镜像作为运行环境
 FROM debian:bookworm-slim
