@@ -40,18 +40,24 @@ impl FromRequest for AuthenticatedUser {
                 if auth_str.starts_with("Bearer ") {
                     let token = &auth_str[7..];
                     // 验证令牌
-                    if let Ok(claims) = validate_token(token) {
-                        return ready(Ok(AuthenticatedUser {
-                            user_id: claims.sub,
-                            username: claims.username,
-                            role: claims.role,
-                        }));
+                    match validate_token(token) {
+                        Ok(claims) => {
+                            return ready(Ok(AuthenticatedUser {
+                                user_id: claims.sub,
+                                username: claims.username,
+                                role: claims.role,
+                            }));
+                        }
+                        Err(e) => {
+                            // 提供更详细的错误信息
+                            return ready(Err(ErrorUnauthorized(format!("Invalid token: {}", e))));
+                        }
                     }
                 }
             }
         }
         // 如果没有有效的令牌，返回未授权错误
-        ready(Err(ErrorUnauthorized("Invalid token")))
+        ready(Err(ErrorUnauthorized("Authorization header missing or invalid")))
     }
 }
 

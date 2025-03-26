@@ -185,4 +185,35 @@ body {
         width: auto !important;
         flex-shrink: 0 !important;
     }
+}
+
+/* 确保导航栏在初始加载时是折叠的 */
+@media (max-width: 991.98px) {
+    .navbar-collapse:not(.show) {
+        display: none !important;
+    }
+    
+    /* 覆盖 Bootstrap 的默认行为 */
+    .navbar-collapse {
+        transition: none !important;
+    }
+    
+    /* 确保折叠按钮正常工作 */
+    .navbar-toggler:not(.collapsed) + .navbar-collapse {
+        display: block !important;
+    }
+    
+    /* 防止 Vue 渲染期间闪烁 */
+    [v-cloak] .navbar-collapse {
+        display: none !important;
+    }
+}
+
+/* 添加到文件末尾，确保这些规则优先级最高 */
+.collapse:not(.show) {
+    display: none !important;
+}
+
+.navbar-collapse.collapse:not(.show) {
+    display: none !important;
 } 

@@ -14,6 +14,7 @@ pub fn config() -> Scope {
         .route("/register", web::post().to(register_user))
         .route("/login", web::post().to(login))
         .route("/me", web::get().to(get_current_user))
+        .route("/current", web::get().to(get_current_user))
         .route("", web::get().to(get_all_users))
         .route("/{id}", web::get().to(get_user))
         .route("/{id}", web::put().to(update_user))

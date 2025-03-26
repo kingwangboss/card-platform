@@ -57,6 +57,22 @@ const app = createApp({
             }
         });
 
+        // 添加 toggleNavbar 函数
+        const toggleNavbar = () => {
+            const navbarCollapse = document.getElementById('navbarNav');
+            if (!navbarCollapse) return;
+            
+            // 手动切换 show 类
+            if (navbarCollapse.classList.contains('show')) {
+                navbarCollapse.classList.remove('show');
+                navbarCollapse.style.display = 'none';
+                
+                // 同时更新 toggler 按钮状态
+                const toggler = document.querySelector('.navbar-toggler');
+                if (toggler) toggler.classList.add('collapsed');
+            }
+        };
+
         api.interceptors.request.use(config => {
             if (token.value) {
                 config.headers.Authorization = `Bearer ${token.value}`;
@@ -310,23 +326,62 @@ const app = createApp({
         };
 
         // Initialize
-        onMounted(async () => {
-            logger.log('Component mounted');
-            const token = localStorage.getItem('token');
-            if (token) {
-                token.value = token;
-                await getCurrentUser();
-                await fetchCards();
+        onMounted(() => {
+            // 确保导航栏初始状态是折叠的
+            const navbarCollapse = document.getElementById('navbarNav');
+            if (navbarCollapse) {
+                navbarCollapse.classList.remove('show');
+                navbarCollapse.style.display = 'none';
             }
+            
+            // 监听导航栏折叠按钮点击事件
+            const toggler = document.querySelector('.navbar-toggler');
+            if (toggler) {
+                toggler.addEventListener('click', () => {
+                    const navbarCollapse = document.getElementById('navbarNav');
+                    if (!navbarCollapse) return;
+                    
+                    if (navbarCollapse.classList.contains('show')) {
+                        navbarCollapse.classList.remove('show');
+                        navbarCollapse.style.display = 'none';
+                        toggler.classList.add('collapsed');
+                    } else {
+                        navbarCollapse.classList.add('show');
+                        navbarCollapse.style.display = 'block';
+                        toggler.classList.remove('collapsed');
+                    }
+                });
+            }
+            
+            // 其他初始化代码...
+            getCurrentUser();
         });
 
         // 获取当前用户信息
         const getCurrentUser = async () => {
             try {
-                const response = await api.get('/users/current');
+                // 先检查 localStorage 中是否有 token
+                const storedToken = localStorage.getItem('token');
+                if (!storedToken) {
+                    logger.log('No token found in localStorage');
+                    return;
+                }
+                
+                // 确保 token 值被正确设置
+                token.value = storedToken;
+                
+                // 尝试获取当前用户信息
+                const response = await api.get('/users/me');
                 currentUser.value = response.data;
-                isLoggedIn.value = true;
+                localStorage.setItem('user', JSON.stringify(currentUser.value));
                 logger.log('Current user fetched:', currentUser.value);
+                
+                // 成功获取用户信息后，获取卡密列表
+                await fetchCards();
+                if (currentUser.value?.role === 'ADMIN') {
+                    logger.log('Fetching users for admin...');
+                    await fetchUsers();
+                }
             } catch (error) {
                 logger.error('Error fetching current user:', error);
                 logout();
@@ -353,6 +408,7 @@ const app = createApp({
             
             // View
             currentView,
+            toggleNavbar,
             
             // Cards
             cards,
