@@ -216,4 +216,35 @@ body {
 
 .navbar-collapse.collapse:not(.show) {
     display: none !important;
+}
+
+/* 修改导航栏样式，确保在 PC 端正常显示 */
+@media (min-width: 992px) {
+    /* 在大屏幕上始终显示导航栏 */
+    .navbar-collapse {
+        display: flex !important;
+    }
+    
+    /* 确保在大屏幕上导航栏内容正确布局 */
+    .navbar .navbar-collapse {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    /* 覆盖之前的内联样式 */
+    #navbarNav {
+        display: flex !important;
+    }
+}
+
+/* 确保在小屏幕上导航栏正确折叠 */
+@media (max-width: 991.98px) {
+    .navbar-collapse:not(.show) {
+        display: none !important;
+    }
+    
+    /* 当显示时使用 block 而不是 flex */
+    .navbar-collapse.show {
+        display: block !important;
+    }
 } 

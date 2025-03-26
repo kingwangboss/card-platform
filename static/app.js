@@ -57,13 +57,13 @@ const app = createApp({
             }
         });
 
-        // 添加 toggleNavbar 函数
+        // 修改 toggleNavbar 函数，确保只在移动设备上工作
         const toggleNavbar = () => {
-            const navbarCollapse = document.getElementById('navbarNav');
-            if (!navbarCollapse) return;
-            
-            // 手动切换 show 类
-            if (navbarCollapse.classList.contains('show')) {
+            // 只在小屏幕上执行折叠操作
+            if (window.innerWidth < 992) { // Bootstrap lg 断点是 992px
+                const navbarCollapse = document.getElementById('navbarNav');
+                if (!navbarCollapse) return;
+                
                 navbarCollapse.classList.remove('show');
                 navbarCollapse.style.display = 'none';
                 
@@ -325,32 +325,19 @@ const app = createApp({
             return date.toLocaleString();
         };
 
-        // Initialize
+        // 修改 onMounted 钩子中的初始化代码
         onMounted(() => {
-            // 确保导航栏初始状态是折叠的
+            // 根据屏幕尺寸设置导航栏的初始状态
             const navbarCollapse = document.getElementById('navbarNav');
             if (navbarCollapse) {
-                navbarCollapse.classList.remove('show');
-                navbarCollapse.style.display = 'none';
-            }
-            
-            // 监听导航栏折叠按钮点击事件
-            const toggler = document.querySelector('.navbar-toggler');
-            if (toggler) {
-                toggler.addEventListener('click', () => {
-                    const navbarCollapse = document.getElementById('navbarNav');
-                    if (!navbarCollapse) return;
-                    
-                    if (navbarCollapse.classList.contains('show')) {
-                        navbarCollapse.classList.remove('show');
-                        navbarCollapse.style.display = 'none';
-                        toggler.classList.add('collapsed');
-                    } else {
-                        navbarCollapse.classList.add('show');
-                        navbarCollapse.style.display = 'block';
-                        toggler.classList.remove('collapsed');
-                    }
-                });
+                if (window.innerWidth < 992) {
+                    // 小屏幕上折叠导航栏
+                    navbarCollapse.classList.remove('show');
+                    navbarCollapse.style.display = 'none';
+                } else {
+                    // 大屏幕上显示导航栏
+                    navbarCollapse.style.display = 'flex';
+                }
             }
             
             // 其他初始化代码...
