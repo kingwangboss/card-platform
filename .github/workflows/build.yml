@@ -79,76 +79,60 @@ jobs:
           echo "Build completed"
           dir target\release\
 
-      - name: Check for .env files (Ubuntu)
+      - name: Create .env.example file (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "Checking for .env files..."
-          ls -la *.env* || echo "No .env files found in root"
+          echo "# 数据库配置" > .env.example
+          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.example
+          echo "DATABASE_NAME=card_platform" >> .env.example
+          echo "" >> .env.example
+          echo "# 安全配置" >> .env.example
+          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.example
+          echo "JWT_EXPIRATION_HOURS=24" >> .env.example
+          echo "ADMIN_USERNAME=admin" >> .env.example
+          echo "ADMIN_PASSWORD=admin123" >> .env.example
+          echo "" >> .env.example
+          echo "# 服务器配置" >> .env.example
+          echo "SERVER_HOST=0.0.0.0" >> .env.example
+          echo "SERVER_PORT=5005" >> .env.example
+          echo "" >> .env.example
+          echo "# 日志配置" >> .env.example
+          echo "LOG_LEVEL=info" >> .env.example
+          echo "LOG_FILE=./logs/card-platform.log" >> .env.example
+          echo "LOG_FILE_SIZE=10485760" >> .env.example
+          echo "LOG_FILE_COUNT=10" >> .env.example
+          echo "DEFAULT_CARD_LENGTH=16" >> .env.example
           
-      - name: Check for .env files (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "Checking for .env files..."
-          Get-ChildItem -Path . -Filter "*.env*" -ErrorAction SilentlyContinue || echo "No .env files found in root"
-          
-      - name: Create .env template if not exists (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          if [ ! -f .env.example ]; then
-            echo "Creating .env.example file..."
-            cat > .env.example << 'EOF'
-            # 数据库配置
-            MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/
-            DATABASE_NAME=card_platform
+          # 检查文件是否创建成功
+          cat .env.example
 
-            # 安全配置
-            JWT_SECRET=your_jwt_secret_key_here
-            JWT_EXPIRATION_HOURS=24
-            ADMIN_USERNAME=admin
-            ADMIN_PASSWORD=admin123
-
-            # 服务器配置
-            SERVER_HOST=0.0.0.0
-            SERVER_PORT=5005
-
-            # 日志配置
-            LOG_LEVEL=info
-            LOG_FILE=./logs/card-platform.log
-            LOG_FILE_SIZE=10485760
-            LOG_FILE_COUNT=10
-            DEFAULT_CARD_LENGTH=16
-            EOF
-          fi
-
-      - name: Create .env template if not exists (Windows)
+      - name: Create .env.example file (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          if [ ! -f .env.example ]; then
-            echo "Creating .env.example file..."
-            cat > .env.example << 'EOF'
-            # 数据库配置
-            MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/
-            DATABASE_NAME=card_platform
-
-            # 安全配置
-            JWT_SECRET=your_jwt_secret_key_here
-            JWT_EXPIRATION_HOURS=24
-            ADMIN_USERNAME=admin
-            ADMIN_PASSWORD=admin123
-
-            # 服务器配置
-            SERVER_HOST=0.0.0.0
-            SERVER_PORT=5005
-
-            # 日志配置
-            LOG_LEVEL=info
-            LOG_FILE=./logs/card-platform.log
-            LOG_FILE_SIZE=10485760
-            LOG_FILE_COUNT=10
-            DEFAULT_CARD_LENGTH=16
-            EOF
-          fi
+          echo "# 数据库配置" > .env.example
+          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.example
+          echo "DATABASE_NAME=card_platform" >> .env.example
+          echo "" >> .env.example
+          echo "# 安全配置" >> .env.example
+          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.example
+          echo "JWT_EXPIRATION_HOURS=24" >> .env.example
+          echo "ADMIN_USERNAME=admin" >> .env.example
+          echo "ADMIN_PASSWORD=admin123" >> .env.example
+          echo "" >> .env.example
+          echo "# 服务器配置" >> .env.example
+          echo "SERVER_HOST=0.0.0.0" >> .env.example
+          echo "SERVER_PORT=5005" >> .env.example
+          echo "" >> .env.example
+          echo "# 日志配置" >> .env.example
+          echo "LOG_LEVEL=info" >> .env.example
+          echo "LOG_FILE=./logs/card-platform.log" >> .env.example
+          echo "LOG_FILE_SIZE=10485760" >> .env.example
+          echo "LOG_FILE_COUNT=10" >> .env.example
+          echo "DEFAULT_CARD_LENGTH=16" >> .env.example
+          
+          # 检查文件是否创建成功
+          cat .env.example
 
       - name: Prepare assets (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
