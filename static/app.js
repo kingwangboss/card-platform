@@ -25,17 +25,21 @@ const app = createApp({
         
         // Cards state
         const cards = ref([]);
-        const cardSearchQuery = ref('');
-        const showGenerateCardModal = ref(false);
-        const cardForm = ref({ duration_days: 30, count: 1 });
-        
-        // Computed properties
         const filteredCards = computed(() => {
-            if (!cardSearchQuery.value) return cards.value;
-            const query = cardSearchQuery.value.toLowerCase();
+            if (!searchQuery.value) return cards.value;
+            const query = searchQuery.value.toLowerCase();
             return cards.value.filter(card => 
-                card.card_number.toLowerCase().includes(query)
+                card.card_number.toLowerCase().includes(query) || 
+                (card.status && card.status.toLowerCase().includes(query))
             );
+        });
+        const searchQuery = ref('');
+        const showGenerateCardModal = ref(false);
+        const cardForm = ref({
+            count: 1,
+            validity_days: 30,
+            prefix: '',
+            batch_name: ''
         });
         
         // Users state
@@ -51,7 +55,7 @@ const app = createApp({
 
         // API client setup
         const api = axios.create({
-            baseURL: '/api',
+            baseURL: '/',
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -73,18 +77,44 @@ const app = createApp({
             }
         };
 
-        api.interceptors.request.use(config => {
-            if (token.value) {
-                config.headers.Authorization = `Bearer ${token.value}`;
-            }
-            return config;
-        });
+        api.interceptors.request.use(
+            config => {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    config.headers['Authorization'] = `Bearer ${token}`;
+                }
+                return config;
+            },
+            error => Promise.reject(error)
+        );
 
         api.interceptors.response.use(
             response => response,
             error => {
-                if (error.response && error.response.status === 401) {
-                    logout();
+                console.error('API Error:', error.response ? error.response.status : error.message);
+                
+                if (error.response) {
+                    // 处理 401 错误（未授权）
+                    if (error.response.status === 401) {
+                        console.warn('Unauthorized access detected');
+                        // 检查错误消息是否包含令牌无效的信息
+                        const errorMsg = error.response.data;
+                        console.log('Error message:', errorMsg);
+                        
+                        if (typeof errorMsg === 'string' && 
+                            (errorMsg.includes('Invalid token') || 
+                             errorMsg.includes('Authorization header missing or invalid'))) {
+                            console.warn('Token invalidated, logging out user');
+                            // 显示被挤下线的提示
+                            alert('您的账号已在其他设备登录，请重新登录');
+                            // 执行登出操作
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            // 重定向到登录页面
+                            window.location.reload();
+                            return Promise.reject(new Error('Logged out due to invalid token'));
+                        }
+                    }
                 }
                 return Promise.reject(error);
             }
@@ -93,169 +123,145 @@ const app = createApp({
         // Auth methods
         const login = async () => {
             try {
+                logger.info('Attempting login for:', loginForm.value.username);
                 loginError.value = '';
-                const response = await api.post('/users/login', loginForm.value);
+                const response = await api.post('/api/users/login', loginForm.value);
                 token.value = response.data.token;
                 currentUser.value = response.data.user;
                 localStorage.setItem('token', token.value);
                 localStorage.setItem('user', JSON.stringify(currentUser.value));
                 loginForm.value = { username: '', password: '' };
                 
-                // 使用 logger 替代 console.log
-                logger.log('Login response:', response.data);
-                logger.log('Current user after login:', currentUser.value);
+                logger.info('Login successful, user:', currentUser.value.username);
                 
+                // 登录成功后获取卡密列表
                 await fetchCards();
-                if (currentUser.value.role === 'ADMIN') {
-                    logger.log('Current user role:', currentUser.value.role);
-                    logger.log('Fetching users for admin...');
+                
+                // 如果是管理员且当前视图是用户管理，获取用户列表
+                if (currentUser.value && currentUser.value.role === 'ADMIN' && currentView.value === 'users') {
                     await fetchUsers();
                 }
             } catch (error) {
                 logger.error('Login error:', error);
-                loginError.value = error.response?.data?.message || '登录失败，请检查用户名和密码';
+                if (error.response && error.response.data) {
+                    loginError.value = error.response.data;
+                } else {
+                    loginError.value = '登录失败，请稍后再试';
+                }
             }
         };
 
         const logout = () => {
+            logger.info('Logging out user');
             token.value = '';
             currentUser.value = null;
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            cards.value = [];
             users.value = [];
-            currentView.value = 'cards';
         };
 
         // Card methods
         const fetchCards = async () => {
             try {
-                const response = await api.get('/cards');
-                // 确保所有卡密数据的ID格式一致
-                cards.value = response.data.map(card => {
-                    if (card._id && typeof card._id === 'string') {
-                        return {
-                            ...card,
-                            _id: { $oid: card._id }
-                        };
-                    }
-                    return card;
-                });
+                logger.info('Fetching cards...');
+                if (!token.value) {
+                    throw new Error('No token found');
+                }
+                
+                const response = await api.get('/api/cards');
+                cards.value = response.data;
+                logger.info('Cards loaded:', cards.value.length);
             } catch (error) {
-                alert('获取卡密列表失败');
+                logger.error('Error fetching cards:', error);
+                if (error.response && error.response.status === 401) {
+                    // 令牌无效，可能是被挤下线
+                    logger.warn('Unauthorized access when fetching cards, possible token invalidation');
+                } else {
+                    console.error('初始化数据失败:', error.message);
+                }
             }
         };
 
         const searchCards = () => {
-            // The filtering is handled by the computed property
-            // This function is just for the button click
+            logger.info('Searching cards with query:', searchQuery.value);
         };
 
         const generateCard = async () => {
             try {
-                const count = parseInt(cardForm.value.count);
-                for (let i = 0; i < count; i++) {
-                    const response = await api.post('/cards/generate', {
-                        duration_days: parseInt(cardForm.value.duration_days)
-                    });
-                    
-                    // 处理返回的卡密数据
-                    let newCard = response.data;
-                    
-                    // 检查并规范化 _id 格式
-                    if (newCard._id) {
-                        if (typeof newCard._id === 'string') {
-                            newCard = {
-                                ...newCard,
-                                _id: { $oid: newCard._id }
-                            };
-                        }
-                    } else if (newCard.id) {
-                        newCard = {
-                            ...newCard,
-                            _id: { $oid: newCard.id }
-                        };
-                    } else {
-                        // 如果没有 _id 或 id，使用 card_number 作为临时 ID
-                        newCard = {
-                            ...newCard,
-                            _id: { $oid: newCard.card_number }
-                        };
-                    }
-                    
-                    cards.value.unshift(newCard);
-                }
+                logger.info('Generating cards:', cardForm.value);
+                const response = await api.post('/api/cards/generate', cardForm.value);
+                cards.value = [...cards.value, ...response.data];
                 showGenerateCardModal.value = false;
-                cardForm.value = { duration_days: 30, count: 1 };
-                
-                // 生成完成后重新获取卡密列表
-                await fetchCards();
+                cardForm.value = {
+                    count: 1,
+                    validity_days: 30,
+                    prefix: '',
+                    batch_name: ''
+                };
+                logger.info('Cards generated successfully');
             } catch (error) {
-                alert('生成卡密失败');
+                logger.error('Error generating cards:', error);
+                alert('生成卡密失败: ' + (error.response?.data || error.message));
             }
         };
 
-        const deleteCard = async (card) => {
-            if (!confirm(`确定要删除卡号为 ${card.card_number} 的卡密吗？`)) {
-                return;
-            }
-
+        const deleteCard = async (id) => {
+            if (!confirm('确定要删除这个卡密吗？')) return;
+            
             try {
-                // 获取卡密ID
-                let cardId;
-                if (card._id?.$oid) {
-                    cardId = card._id.$oid;
-                } else if (typeof card._id === 'string') {
-                    cardId = card._id;
-                } else if (card.id) {
-                    cardId = card.id;
-                } else if (card.card_number) {
-                    // 如果没有 ID，使用卡号
-                    cardId = card.card_number;
-                } else {
-                    throw new Error('无法找到卡密ID');
-                }
-
-                await api.delete(`/cards/${cardId}`);
-                
-                // 删除后重新获取卡密列表，确保数据同步
-                await fetchCards();
+                logger.info('Deleting card:', id);
+                await api.delete(`/api/cards/${id}`);
+                cards.value = cards.value.filter(card => card._id !== id);
+                logger.info('Card deleted successfully');
             } catch (error) {
-                alert('删除卡密失败: ' + (error.message || '未知错误'));
+                logger.error('Error deleting card:', error);
+                alert('删除卡密失败: ' + (error.response?.data || error.message));
             }
         };
 
         const exportCards = async () => {
             try {
-                const response = await api.get('/cards/export', { responseType: 'blob' });
-                
-                // 创建下载链接
+                logger.info('Exporting cards');
+                const response = await api.get('/api/cards/export', { responseType: 'blob' });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', `卡密列表_${new Date().toISOString().slice(0, 10)}.csv`);
+                link.setAttribute('download', 'cards.csv');
                 document.body.appendChild(link);
-                
-                // 触发下载并移除链接
                 link.click();
                 document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
+                logger.info('Cards exported successfully');
             } catch (error) {
-                alert('导出卡密失败');
+                logger.error('Error exporting cards:', error);
+                alert('导出卡密失败: ' + error.message);
             }
         };
 
         // User methods
         const fetchUsers = async () => {
             try {
-                const response = await api.get('/users');
+                logger.info('Fetching users...');
+                if (!token.value || !currentUser.value || currentUser.value.role !== 'ADMIN') {
+                    logger.warn('Not authorized to fetch users');
+                    return;
+                }
+                
+                const response = await api.get('/api/users');
                 users.value = response.data;
+                logger.info('Users loaded:', users.value.length);
             } catch (error) {
-                alert('获取用户列表失败');
+                logger.error('Error fetching users:', error);
+                if (error.response && error.response.status === 401) {
+                    // 令牌无效，可能是被挤下线
+                    logger.warn('Unauthorized access when fetching users, possible token invalidation');
+                }
             }
         };
 
         const editUser = (user) => {
-            editingUser.value = user;
+            logger.info('Editing user:', user.username);
+            editingUser.value = user.id;
             userForm.value = {
                 username: user.username,
                 password: '',
@@ -266,6 +272,7 @@ const app = createApp({
         };
 
         const closeUserModal = () => {
+            logger.info('Closing user modal');
             showCreateUserModal.value = false;
             editingUser.value = null;
             userForm.value = {
@@ -279,49 +286,59 @@ const app = createApp({
         const saveUser = async () => {
             try {
                 if (editingUser.value) {
-                    // 更新现有用户
+                    // 更新用户
+                    logger.info('Updating user:', editingUser.value);
                     const updateData = {
-                        email: userForm.value.email,
-                        role: userForm.value.role
+                        ...userForm.value
                     };
-                    if (userForm.value.password) {
-                        updateData.password = userForm.value.password;
+                    if (!updateData.password) {
+                        delete updateData.password;
                     }
-                    await api.put(`/users/${editingUser.value.id}`, updateData);
-                    await fetchUsers(); // 重新获取用户列表
+                    
+                    await api.put(`/api/users/${editingUser.value}`, updateData);
+                    const index = users.value.findIndex(u => u.id === editingUser.value);
+                    if (index !== -1) {
+                        users.value[index] = {
+                            ...users.value[index],
+                            username: userForm.value.username,
+                            email: userForm.value.email,
+                            role: userForm.value.role
+                        };
+                    }
+                    logger.info('User updated successfully');
                 } else {
-                    // 创建新用户
-                    await api.post('/users/register', userForm.value);
-                    await fetchUsers(); // 重新获取用户列表
+                    // 创建用户
+                    logger.info('Creating new user:', userForm.value.username);
+                    const response = await api.post('/api/users/register', userForm.value);
+                    users.value.push(response.data);
+                    logger.info('User created successfully');
                 }
+                
                 closeUserModal();
             } catch (error) {
-                alert(editingUser.value ? '更新用户失败' : '创建用户失败');
+                logger.error('Error saving user:', error);
+                alert('保存用户失败: ' + (error.response?.data || error.message));
             }
         };
 
-        const deleteUser = async (user) => {
-            if (user.username === currentUser.value.username) {
-                alert('不能删除当前登录的用户');
-                return;
-            }
-
-            if (!confirm(`确定要删除用户 ${user.username} 吗？`)) {
-                return;
-            }
-
+        const deleteUser = async (id) => {
+            if (!confirm('确定要删除这个用户吗？')) return;
+            
             try {
-                await api.delete(`/users/${user.id}`);
-                await fetchUsers(); // 重新获取用户列表
+                logger.info('Deleting user:', id);
+                await api.delete(`/api/users/${id}`);
+                users.value = users.value.filter(user => user.id !== id);
+                logger.info('User deleted successfully');
             } catch (error) {
-                alert('删除用户失败');
+                logger.error('Error deleting user:', error);
+                alert('删除用户失败: ' + (error.response?.data || error.message));
             }
         };
 
         // Utility methods
-        const formatDate = (dateStr) => {
-            if (!dateStr) return '-';
-            const date = new Date(dateStr);
+        const formatDate = (dateString) => {
+            if (!dateString) return '未设置';
+            const date = new Date(dateString);
             return date.toLocaleString();
         };
 
@@ -339,7 +356,7 @@ const app = createApp({
                 token.value = storedToken;
                 
                 // 尝试获取当前用户信息
-                const response = await api.get('/users/me');
+                const response = await api.get('/api/users/me');
                 currentUser.value = response.data;
                 localStorage.setItem('user', JSON.stringify(currentUser.value));
                 logger.log('Current user fetched:', currentUser.value);
@@ -352,11 +369,10 @@ const app = createApp({
         };
 
         // 添加一个 watch 来监视 currentView 的变化
-        watch(currentView, (newView) => {
-            logger.log('Current view changed to:', newView);
-            if (newView === 'users' && currentUser.value?.role === 'ADMIN') {
-                logger.log('Fetching users after view change...');
-                fetchUsers();
+        watch(currentView, async (newView) => {
+            logger.info('View changed to:', newView);
+            if (newView === 'users' && currentUser.value && currentUser.value.role === 'ADMIN') {
+                await fetchUsers();
             }
         });
 
@@ -407,7 +423,7 @@ const app = createApp({
             // Cards
             cards,
             filteredCards,
-            cardSearchQuery,
+            searchQuery,
             showGenerateCardModal,
             cardForm,
             fetchCards,

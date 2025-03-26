@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse, Scope};
 use chrono::Utc;
-use mongodb::bson::{self, doc, oid::ObjectId, DateTime as BsonDateTime};
+use mongodb::bson::{self, doc, oid::ObjectId};
 use log::{info, warn, error};
 
 use crate::{
@@ -75,50 +75,48 @@ async fn register_user(
     }
 }
 
-async fn login(state: web::Data<AppState>, req: web::Json<LoginRequest>) -> HttpResponse {
+async fn login(
+    state: web::Data<AppState>,
+    req: web::Json<LoginRequest>,
+) -> HttpResponse {
     info!("Login attempt for user: {}", req.username);
     
     let collection = state.db.collection::<User>("users");
-
-    // Find user by username
     let filter = doc! { "username": &req.username };
+
     match collection.find_one(filter, None).await {
         Ok(Some(user)) => {
-            // Verify password
             match verify_password(&req.password, &user.password_hash) {
                 Ok(true) => {
-                    // Generate JWT token
-                    match generate_token(&user) {
+                    // 使用新的 generate_token 函数
+                    match generate_token(&user, &state.db).await {
                         Ok(token) => {
-                            let user_info = UserInfo::from(user.clone());
-                            info!("User '{}' logged in successfully", req.username);
-                            HttpResponse::Ok().json(LoginResponse {
-                                token,
-                                user: user_info,
-                            })
+                            let user_info = UserInfo::from(user);
+                            let response = LoginResponse { token, user: user_info };
+                            HttpResponse::Ok().json(response)
                         }
                         Err(e) => {
-                            error!("Failed to generate token for user '{}': {}", req.username, e);
-                            HttpResponse::InternalServerError().body("Failed to generate token")
+                            error!("Error generating token: {}", e);
+                            HttpResponse::InternalServerError().body("Error generating token")
                         }
                     }
                 }
                 Ok(false) => {
-                    warn!("Invalid password attempt for user '{}'", req.username);
+                    warn!("Invalid password for user: {}", req.username);
                     HttpResponse::Unauthorized().body("Invalid username or password")
                 }
                 Err(e) => {
-                    error!("Password verification error for user '{}': {}", req.username, e);
+                    error!("Error verifying password: {}", e);
                     HttpResponse::InternalServerError().body(e.to_string())
                 }
             }
         }
         Ok(None) => {
-            warn!("Login attempt with non-existent username: {}", req.username);
+            warn!("User not found: {}", req.username);
             HttpResponse::Unauthorized().body("Invalid username or password")
         }
         Err(e) => {
-            error!("Database error during login for user '{}': {}", req.username, e);
+            error!("Database error: {}", e);
             HttpResponse::InternalServerError().body(e.to_string())
         }
     }

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use mongodb::bson::DateTime as BsonDateTime;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
@@ -26,6 +27,7 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing, skip_deserializing)]
     pub updated_at: DateTime<Utc>,
+    pub last_token: Option<String>,
 }
 
 impl User {
@@ -41,6 +43,7 @@ impl User {
             updated_at: now,
             created_at_str: now.to_rfc3339(),
             updated_at_str: now.to_rfc3339(),
+            last_token: None,
         }
     }
 }
