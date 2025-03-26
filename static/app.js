@@ -26,7 +26,17 @@ const app = createApp({
         // Cards state
         const cards = ref([]);
         const cardSearchQuery = ref('');
-        const displayedCards = ref([]); // 新增：用于显示的卡密列表
+        const displayedCards = computed(() => {
+            const query = cardSearchQuery.value.toLowerCase();
+            if (!query) {
+                return cards.value;
+            }
+            
+            return cards.value.filter(card => {
+                return card.card_number.toLowerCase().includes(query) ||
+                       (card.created_by_username && card.created_by_username.toLowerCase().includes(query));
+            });
+        });
         const showGenerateCardModal = ref(false);
         const cardForm = ref({
             duration_days: 30,
@@ -42,16 +52,6 @@ const app = createApp({
             password: '',
             email: '',
             role: 'User'
-        });
-        
-        // 监听搜索查询变化，实时过滤卡密列表
-        watch(cardSearchQuery, (newQuery) => {
-            searchCards();
-        });
-        
-        // 监听卡密列表变化，更新显示的卡密
-        watch(cards, (newCards) => {
-            searchCards();
         });
         
         // 登录函数
@@ -125,20 +125,6 @@ const app = createApp({
                     logout();
                 }
             }
-        };
-        
-        // 搜索卡密
-        const searchCards = () => {
-            const query = cardSearchQuery.value.toLowerCase();
-            if (!query) {
-                displayedCards.value = cards.value;
-                return;
-            }
-            
-            displayedCards.value = cards.value.filter(card => {
-                return card.card_number.toLowerCase().includes(query) ||
-                       (card.created_by_username && card.created_by_username.toLowerCase().includes(query));
-            });
         };
         
         // 生成卡密
@@ -322,6 +308,29 @@ const app = createApp({
             }
         };
         
+        // 检查卡密是否过期
+        const isExpired = (card) => {
+            if (!card || !card.is_activated || !card.expires_at_str) return false;
+            const expiresAt = new Date(card.expires_at_str);
+            return expiresAt < new Date();
+        };
+        
+        // 获取卡密状态文本
+        const getCardStatusText = (card) => {
+            if (!card.is_activated) return '未激活';
+            if (isExpired(card)) return '已过期';
+            if (card.used_by_identifier) return '已使用';
+            return '已激活';
+        };
+        
+        // 获取卡密状态样式类
+        const getCardStatusClass = (card) => {
+            if (!card.is_activated) return 'bg-success';
+            if (isExpired(card)) return 'bg-danger';
+            if (card.used_by_identifier) return 'bg-info';
+            return 'bg-warning';
+        };
+        
         // 初始化
         onMounted(() => {
             // 如果已登录，设置 axios 默认请求头并加载数据
@@ -355,7 +364,6 @@ const app = createApp({
             showGenerateCardModal,
             cardForm,
             fetchCards,
-            searchCards,
             generateCard,
             deleteCard,
             exportCards,
@@ -372,7 +380,10 @@ const app = createApp({
             deleteUser,
             
             // Utils
-            formatDate
+            formatDate,
+            isExpired,
+            getCardStatusText,
+            getCardStatusClass
         };
     }
 });

@@ -52,6 +52,9 @@
                             <li class="nav-item" v-if="currentUser && currentUser.role === 'ADMIN'">
                                 <a class="nav-link" :class="{ active: currentView === 'users' }" href="#" @click="switchView('users')">用户管理</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{ active: currentView === 'api-docs' }" href="#" @click="switchView('api-docs')">接口文档</a>
+                            </li>
                         </ul>
                         <span class="navbar-text me-3">
                             欢迎, {{ currentUser ? currentUser.username : '用户' }}
@@ -78,11 +81,15 @@
                 <!-- 卡片布局的卡密列表 -->
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                     <div class="col" v-for="card in displayedCards" :key="card.id">
-                        <div class="card h-100" :class="{ 'border-success': !card.is_activated, 'border-warning': card.is_activated }">
+                        <div class="card h-100" :class="{ 
+                            'border-success': !card.is_activated, 
+                            'border-warning': card.is_activated && !isExpired(card),
+                            'border-danger': isExpired(card)
+                        }">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
-                                    <span class="badge" :class="card.is_activated ? 'bg-warning' : 'bg-success'">
-                                        {{ card.is_activated ? '已激活' : '未激活' }}
+                                    <span class="badge" :class="getCardStatusClass(card)">
+                                        {{ getCardStatusText(card) }}
                                     </span>
                                 </h5>
                                 <button class="btn btn-sm btn-danger" @click="deleteCard(card)">删除</button>
@@ -94,6 +101,9 @@
                                 <p class="card-text" v-if="card.created_by_username"><strong>创建者:</strong> {{ card.created_by_username }}</p>
                                 <p class="card-text" v-if="card.is_activated"><strong>激活时间:</strong> {{ formatDate(card.activated_at_str) }}</p>
                                 <p class="card-text" v-if="card.is_activated"><strong>过期时间:</strong> {{ formatDate(card.expires_at_str) }}</p>
+                                <p class="card-text" v-if="card.used_by_identifier" class="text-info">
+                                    <strong>使用者:</strong> {{ card.used_by_identifier }}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -205,6 +215,100 @@
                     </div>
                 </div>
             </div>
+
+            <!-- API Docs View -->
+            <div v-if="currentView === 'api-docs'" class="container mt-4">
+                <h2>接口文档</h2>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">卡密验证接口</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <strong>重要提示：</strong> 一张卡密只能被一个用户使用。系统通过用户标识符或客户端IP地址来识别用户。
+                        </div>
+                        
+                        <h4>请求信息</h4>
+                        <ul>
+                            <li><strong>URL:</strong> <code>http://localhost:5005/api/cards/verify</code></li>
+                            <li><strong>方法:</strong> POST</li>
+                            <li><strong>Content-Type:</strong> application/json</li>
+                            <li><strong>认证:</strong> 不需要</li>
+                        </ul>
+                        
+                        <h4>请求参数</h4>
+                        <pre class="bg-light p-3 rounded"><code>{
+  "card_number": "1pZKyLAywgUOEUqd", // 要验证的卡密号码（必填）
+  "user_identifier": "device_id_123" // 用户唯一标识符（可选）
+}</code></pre>
+                        
+                        <div class="alert alert-info mt-3">
+                            <p><strong>用户标识符说明：</strong></p>
+                            <ul>
+                                <li>如果不提供 <code>user_identifier</code>，系统将使用客户端IP地址作为标识符</li>
+                                <li>同一用户（相同标识符）可以多次验证同一张卡密</li>
+                                <li>不同用户（不同标识符）不能使用同一张卡密</li>
+                                <li>建议使用设备ID、用户ID或其他唯一标识作为标识符</li>
+                            </ul>
+                        </div>
+                        
+                        <h4>响应示例（未激活卡密）</h4>
+                        <pre class="bg-light p-3 rounded"><code>{
+  "message": "卡密激活成功",
+  "card": {
+    "card_number": "1pZKyLAywgUOEUqd",
+    "duration_days": 30,
+    "is_activated": true,
+    "activated_at_str": "2024-01-01T12:00:00Z",
+    "expires_at_str": "2024-01-31T12:00:00Z",
+    "used_by_identifier": "device_id_123"
+  }
+}</code></pre>
+                        
+                        <h4>响应示例（已激活卡密，同一用户）</h4>
+                        <pre class="bg-light p-3 rounded"><code>{
+  "card_number": "1pZKyLAywgUOEUqd",
+  "duration_days": 30,
+  "is_activated": true,
+  "activated_at_str": "2024-01-01T12:00:00Z",
+  "expires_at_str": "2024-01-31T12:00:00Z",
+  "used_by_identifier": "device_id_123"
+}</code></pre>
+                        
+                        <h4>错误响应</h4>
+                        <ul>
+                            <li><strong>卡密不存在:</strong> 404 Not Found</li>
+                            <li><strong>卡密已过期:</strong> 400 Bad Request</li>
+                            <li><strong>卡密已被其他用户使用:</strong> 400 Bad Request</li>
+                        </ul>
+                        
+                        <h4>使用示例</h4>
+                        <div class="mt-3">
+                            <h5>使用 cURL</h5>
+                            <pre class="bg-light p-3 rounded"><code>curl -X POST http://localhost:5005/api/cards/verify \
+  -H "Content-Type: application/json" \
+  -d '{"card_number": "1pZKyLAywgUOEUqd", "user_identifier": "device_id_123"}'</code></pre>
+                            
+                            <h5>使用 JavaScript</h5>
+                            <pre class="bg-light p-3 rounded"><code>fetch('http://localhost:5005/api/cards/verify', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    card_number: '1pZKyLAywgUOEUqd',
+    user_identifier: 'device_id_123'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="modal-backdrop fade show" v-if="showGenerateCardModal || showCreateUserModal"></div>
         </div>
     </div>

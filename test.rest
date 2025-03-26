@@ -1,6 +1,7 @@
 ### 生成卡密 - 1天有效期
 POST http://localhost:5005/api/cards/generate
 Content-Type: application/json
+Authorization: Bearer 你的令牌
 
 {
   "duration_days": 1
@@ -9,14 +10,17 @@ Content-Type: application/json
 ### 生成卡密 - 7天有效期
 POST http://localhost:5005/api/cards/generate
 Content-Type: application/json
+Authorization: Bearer 你的令牌
 
 {
-  "duration_days": 7
+  "duration_days": 7,
+  "count": 1
 }
 
 ### 生成卡密 - 15天有效期
 POST http://localhost:5005/api/cards/generate
 Content-Type: application/json
+Authorization: Bearer 你的令牌
 
 {
   "duration_days": 15
@@ -25,25 +29,53 @@ Content-Type: application/json
 ### 生成卡密 - 30天有效期
 POST http://localhost:5005/api/cards/generate
 Content-Type: application/json
+Authorization: Bearer 你的令牌
 
 {
   "duration_days": 30
 }
 
-### 验证卡密 (未激活的卡密会自动激活)
+### 验证卡密 (未激活的卡密会自动激活) - 用户A
 POST http://localhost:5005/api/cards/verify
 Content-Type: application/json
 
 {
-  "card_number": "06M3MxT7PUxSDDXg"
+  "card_number": "IALuTYg4JjKQN6Gm",
+  "user_identifier": "user_A"
 }
 
-### 再次验证同一卡密 (已激活)
+### 再次验证同一卡密 (已激活) - 同一用户A
 POST http://localhost:5005/api/cards/verify
 Content-Type: application/json
 
 {
-  "card_number": "替换为您上面验证的卡号"
+  "card_number": "IALuTYg4JjKQN6Gm",
+  "user_identifier": "user_A"
+}
+
+### 尝试使用不同用户验证同一卡密 - 用户B (应该失败)
+POST http://localhost:5005/api/cards/verify
+Content-Type: application/json
+
+{
+  "card_number": "IALuTYg4JjKQN6Gm",
+  "user_identifier": "user_B"
+}
+
+### 验证卡密 (不传用户标识符，使用IP作为标识)
+POST http://localhost:5005/api/cards/verify
+Content-Type: application/json
+
+{
+  "card_number": "UHJJF22XZZiLrSSB"
+}
+
+### 再次验证同一卡密 (不传用户标识符，使用IP作为标识)
+POST http://localhost:5005/api/cards/verify
+Content-Type: application/json
+
+{
+  "card_number": "另一张卡密号码"
 }
 
 ### 手动激活卡密 (可选，通常不需要)
@@ -59,5 +91,6 @@ POST http://localhost:5005/api/cards/verify
 Content-Type: application/json
 
 {
-  "card_number": "替换为已过期的卡号"
+  "card_number": "替换为已过期的卡号",
+  "user_identifier": "any_user"
 }

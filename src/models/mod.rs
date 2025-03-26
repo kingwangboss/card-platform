@@ -29,10 +29,11 @@ pub struct ActivateCardRequest {
 #[derive(Debug, Deserialize)]
 pub struct VerifyCardRequest {
     pub card_number: String,
+    pub user_identifier: Option<String>,  // 添加用户标识符（可选）
 }
 
 // 卡密模型
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Card {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,  // 改回使用 id 字段名，但在序列化时重命名为 _id
@@ -44,6 +45,8 @@ pub struct Card {
     pub created_at_str: String,
     pub created_by: Option<String>,           // 添加创建者ID
     pub created_by_username: Option<String>,  // 添加创建者用户名
+    pub used_by: Option<String>,              // 添加使用者标识
+    pub used_by_identifier: Option<String>,   // 添加使用者唯一标识符（如设备ID、IP等）
     
     #[serde(skip_serializing, skip_deserializing)]
     pub activated_at: Option<DateTime<Utc>>,
@@ -69,10 +72,12 @@ impl Card {
             created_at_str: now.to_rfc3339(),
             created_by: None,           // 初始化为None
             created_by_username: None,  // 初始化为None
+            used_by: None,              // 初始化为None
+            used_by_identifier: None,   // 初始化为None
         }
     }
     
-    pub fn with_activation(&self, now: DateTime<Utc>) -> Self {
+    pub fn with_activation(&self, now: DateTime<Utc>, user_id: Option<String>, identifier: Option<String>) -> Self {
         let expires_at = now + chrono::Duration::days(self.duration_days as i64);
         Self {
             id: self.id,  // 使用 id 字段
@@ -87,6 +92,8 @@ impl Card {
             created_at_str: self.created_at_str.clone(),
             created_by: self.created_by.clone(),           // 保留创建者ID
             created_by_username: self.created_by_username.clone(),  // 保留创建者用户名
+            used_by: user_id,                              // 设置使用者ID
+            used_by_identifier: identifier,                // 设置使用者标识符
         }
     }
 }

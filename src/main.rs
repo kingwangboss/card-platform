@@ -4,10 +4,11 @@ mod errors;     // 错误处理模块
 mod handlers;   // 请求处理器模块
 mod init;       // 初始化模块
 mod models;     // 数据模型模块
+mod middleware; // 自定义中间件模块
 
 use actix_cors::Cors;
 use actix_files as fs;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{middleware as actix_middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use mongodb::{Client, Database};
 use std::env;
@@ -18,6 +19,7 @@ use log4rs::{
     config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
+use middleware::ClientIpMiddleware;
 
 // 应用状态结构体，包含数据库连接
 pub struct AppState {
@@ -97,8 +99,9 @@ async fn main() -> std::io::Result<()> {
 
         // 配置应用
         App::new()
-            .wrap(middleware::Logger::default())  // 启用日志中间件
+            .wrap(actix_middleware::Logger::default())  // 启用日志中间件
             .wrap(cors)                           // 启用 CORS 中间件
+            .wrap(ClientIpMiddleware)             // 添加客户端IP中间件
             .app_data(app_state.clone())          // 注入应用状态
             .service(handlers::card::config())    // 注册卡密相关路由
             .service(handlers::user::config())    // 注册用户相关路由

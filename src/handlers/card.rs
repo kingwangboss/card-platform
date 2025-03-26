@@ -99,7 +99,7 @@ async fn activate_card(
             };
 
             let now = Utc::now();
-            let updated_card = card.with_activation(now);
+            let updated_card = card.with_activation(now, None, None);
             
             let update = doc! {
                 "$set": {
@@ -152,100 +152,104 @@ async fn activate_card(
 async fn verify_card(
     state: web::Data<AppState>,
     req: web::Json<VerifyCardRequest>,
+    client_ip: web::ReqData<String>, // 获取客户端IP
 ) -> HttpResponse {
-    info!("Attempting to verify card. Request params: card_number={}", req.card_number);
+    info!("Verifying card. Request params: card_number={}", req.card_number);
     
     let collection = state.db.collection::<Card>("cards");
+    let card_filter = doc! { "card_number": &req.card_number };
 
-    // 首先检查卡密是否存在
-    let filter = doc! {
-        "card_number": &req.card_number,
-    };
-
-    match collection.find_one(filter, None).await {
+    match collection.find_one(card_filter, None).await {
         Ok(Some(card)) => {
-            // 如果卡密未激活，自动激活它
-            if !card.is_activated {
-                // 卡密存在且未激活，进行激活
-                let filter = doc! {
-                    "card_number": &req.card_number,
-                    "is_activated": false,
-                };
-
-                let now = Utc::now();
-                let updated_card = card.with_activation(now);
-                
-                // 更新数据库中的卡密状态
-                let update = doc! {
-                    "$set": {
-                        "is_activated": true,
-                        "activated_at_str": updated_card.activated_at_str,
-                        "expires_at_str": updated_card.expires_at_str,
-                    }
-                };
-
-                match collection.update_one(filter, update, None).await {
-                    Ok(update_result) => {
-                        if update_result.modified_count == 0 {
-                            // 如果没有文档被修改，可能是因为卡密在检查和更新之间被其他请求激活了
-                            return HttpResponse::BadRequest().body("Card could not be activated, it may have been activated by another request");
+            // 如果卡密已激活
+            if card.is_activated {
+                // 检查卡密是否已过期
+                if let Some(expires_at_str) = &card.expires_at_str {
+                    if let Ok(expires_at) = expires_at_str.parse::<DateTime<Utc>>() {
+                        let mut card_with_dates = card.clone();
+                        card_with_dates.expires_at = Some(expires_at);
+                        
+                        // 检查是否过期
+                        if expires_at <= Utc::now() {
+                            warn!("Card '{}' has expired", req.card_number);
+                            return HttpResponse::BadRequest().json(serde_json::json!({
+                                "error": "Card expired",
+                                "message": "此卡密已过期",
+                                "card": card_with_dates
+                            }));
                         }
                         
-                        // 获取更新后的卡密信息
-                        let updated_filter = doc! {
-                            "card_number": &req.card_number,
-                        };
-                        
-                        match collection.find_one(updated_filter, None).await {
-                            Ok(Some(updated_card)) => {
-                                // 解析日期时间字符串
-                                if let Some(expires_at_str) = &updated_card.expires_at_str {
-                                    if let Ok(expires_at) = expires_at_str.parse::<DateTime<Utc>>() {
-                                        let mut card_with_dates = updated_card;
-                                        card_with_dates.expires_at = Some(expires_at);
-                                        
-                                        return HttpResponse::Ok().json(serde_json::json!({
-                                            "message": "Card activated successfully",
-                                            "card": card_with_dates
-                                        }));
-                                    }
-                                }
-                                
-                                return HttpResponse::Ok().json(serde_json::json!({
-                                    "message": "Card activated successfully",
-                                    "card": updated_card
+                        // 检查是否已被其他用户使用
+                        if let Some(used_by_identifier) = &card.used_by_identifier {
+                            let current_identifier = req.user_identifier.clone()
+                                .unwrap_or_else(|| client_ip.to_string());  // 简化为直接转换为字符串
+                            
+                            if used_by_identifier != &current_identifier {
+                                warn!("Card '{}' is already used by another user", req.card_number);
+                                return HttpResponse::BadRequest().json(serde_json::json!({
+                                    "error": "Card already used",
+                                    "message": "此卡密已被其他用户使用",
+                                    "card": card_with_dates
                                 }));
-                            },
-                            Ok(None) => return HttpResponse::NotFound().body("Card not found after update"),
-                            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+                            }
                         }
-                    },
-                    Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-                }
-            }
-
-            // 卡密已激活，检查是否过期
-            if let Some(expires_at_str) = &card.expires_at_str {
-                if let Ok(expires_at) = expires_at_str.parse::<DateTime<Utc>>() {
-                    let mut card_with_dates = card;
-                    card_with_dates.expires_at = Some(expires_at);
-                    
-                    // 检查是否过期
-                    if expires_at > Utc::now() {
+                        
+                        // 卡密有效且属于当前用户
                         return HttpResponse::Ok().json(card_with_dates);
-                    } else {
-                        return HttpResponse::BadRequest().json(serde_json::json!({
-                            "error": "Card expired",
-                            "message": "This card has expired",
-                            "card": card_with_dates
-                        }));
                     }
                 }
+                
+                return HttpResponse::BadRequest().body("无效的过期日期");
             }
             
-            return HttpResponse::BadRequest().body("Invalid expiration date");
+            // 卡密未激活，进行激活
+            let now = Utc::now();
+            
+            // 获取用户标识符
+            let user_identifier = req.user_identifier.clone()
+                .unwrap_or_else(|| client_ip.to_string());  // 简化为直接转换为字符串
+            
+            // 更新卡密信息
+            let filter = doc! {
+                "card_number": &req.card_number,
+                "is_activated": false  // 确保只有未激活的卡密才能被激活
+            };
+            
+            let updated_card = card.with_activation(now, None, Some(user_identifier.clone()));
+            
+            let update = doc! {
+                "$set": {
+                    "is_activated": true,
+                    "activated_at_str": updated_card.activated_at_str,
+                    "expires_at_str": updated_card.expires_at_str,
+                    "used_by_identifier": user_identifier
+                }
+            };
+
+            match collection.update_one(filter, update, None).await {
+                Ok(update_result) => {
+                    if update_result.modified_count == 0 {
+                        warn!("Card '{}' could not be activated, may have been activated by another request", req.card_number);
+                        return HttpResponse::BadRequest().body("卡密无法激活，可能已被其他请求激活");
+                    }
+                    
+                    // 获取更新后的卡密信息
+                    match collection.find_one(doc! { "card_number": &req.card_number }, None).await {
+                        Ok(Some(updated_card)) => {
+                            info!("Card '{}' activated successfully", req.card_number);
+                            return HttpResponse::Ok().json(serde_json::json!({
+                                "message": "卡密激活成功",
+                                "card": updated_card
+                            }));
+                        },
+                        Ok(None) => return HttpResponse::NotFound().body("更新后找不到卡密"),
+                        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+                    }
+                },
+                Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+            }
         },
-        Ok(None) => HttpResponse::NotFound().body("Card not found"),
+        Ok(None) => HttpResponse::NotFound().body("卡密不存在"),
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
