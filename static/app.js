@@ -1,5 +1,5 @@
 // 在文件顶部添加调试开关
-const DEBUG = false; // 设置为 false 可禁用所有调试输出
+const DEBUG = true; // 设置为 false 可禁用所有调试输出
 
 // 创建自定义日志函数
 const logger = {
@@ -325,7 +325,42 @@ const app = createApp({
             return date.toLocaleString();
         };
 
-        // 修改 onMounted 钩子中的初始化代码
+        // 获取当前用户信息
+        const getCurrentUser = async () => {
+            try {
+                // 先检查 localStorage 中是否有 token
+                const storedToken = localStorage.getItem('token');
+                if (!storedToken) {
+                    logger.log('No token found in localStorage');
+                    return Promise.reject('No token found');
+                }
+                
+                // 确保 token 值被正确设置
+                token.value = storedToken;
+                
+                // 尝试获取当前用户信息
+                const response = await api.get('/users/me');
+                currentUser.value = response.data;
+                localStorage.setItem('user', JSON.stringify(currentUser.value));
+                logger.log('Current user fetched:', currentUser.value);
+                
+                return Promise.resolve(currentUser.value);
+            } catch (error) {
+                logger.error('Error fetching current user:', error);
+                return Promise.reject(error);
+            }
+        };
+
+        // 添加一个 watch 来监视 currentView 的变化
+        watch(currentView, (newView) => {
+            logger.log('Current view changed to:', newView);
+            if (newView === 'users' && currentUser.value?.role === 'ADMIN') {
+                logger.log('Fetching users after view change...');
+                fetchUsers();
+            }
+        });
+
+        // 修改 onMounted 钩子中的代码，确保数据正确加载
         onMounted(() => {
             // 根据屏幕尺寸设置导航栏的初始状态
             const navbarCollapse = document.getElementById('navbarNav');
@@ -340,48 +375,20 @@ const app = createApp({
                 }
             }
             
-            // 其他初始化代码...
-            getCurrentUser();
-        });
-
-        // 获取当前用户信息
-        const getCurrentUser = async () => {
-            try {
-                // 先检查 localStorage 中是否有 token
-                const storedToken = localStorage.getItem('token');
-                if (!storedToken) {
-                    logger.log('No token found in localStorage');
-                    return;
+            // 确保获取当前用户信息
+            getCurrentUser().then(() => {
+                // 无论当前视图是什么，都加载卡密列表
+                fetchCards();
+                
+                // 如果是管理员且当前视图是用户管理，加载用户列表
+                if (currentUser.value?.role === 'ADMIN' && currentView.value === 'users') {
+                    fetchUsers();
                 }
-                
-                // 确保 token 值被正确设置
-                token.value = storedToken;
-                
-                // 尝试获取当前用户信息
-                const response = await api.get('/users/me');
-                currentUser.value = response.data;
-                localStorage.setItem('user', JSON.stringify(currentUser.value));
-                logger.log('Current user fetched:', currentUser.value);
-                
-                // 成功获取用户信息后，获取卡密列表
-                await fetchCards();
-                if (currentUser.value?.role === 'ADMIN') {
-                    logger.log('Fetching users for admin...');
-                    await fetchUsers();
-                }
-            } catch (error) {
-                logger.error('Error fetching current user:', error);
+            }).catch(error => {
+                logger.error('初始化数据失败:', error);
+                // 如果获取用户信息失败，可能是登录过期，执行登出操作
                 logout();
-            }
-        };
-
-        // 添加一个 watch 来监视 currentView 的变化
-        watch(currentView, (newView) => {
-            logger.log('Current view changed to:', newView);
-            if (newView === 'users' && currentUser.value?.role === 'ADMIN') {
-                logger.log('Fetching users after view change...');
-                fetchUsers();
-            }
+            });
         });
 
         return {

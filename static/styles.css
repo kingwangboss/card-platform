@@ -247,4 +247,68 @@ body {
     .navbar-collapse.show {
         display: block !important;
     }
+}
+
+/* 添加移动端表格优化样式 */
+@media (max-width: 767.98px) {
+    /* 确保表格在小屏幕上可以水平滚动 */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* 调整表格单元格在小屏幕上的显示 */
+    .table td, .table th {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        vertical-align: top;
+    }
+    
+    /* 限制卡号列的宽度，防止过长 */
+    .table td.text-break {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* 确保操作按钮不会太大 */
+    .table .btn-sm {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    /* 优化状态列的显示 */
+    .table td .badge {
+        display: inline-block;
+        margin-bottom: 0.25rem;
+    }
+    
+    /* 优化移动端的时间信息显示 */
+    .table td .small.text-muted {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+    
+    /* 调整表格布局，使其在移动端更紧凑 */
+    .table {
+        table-layout: fixed;
+    }
+    
+    /* 设置列宽比例 */
+    .table th:nth-child(1), .table td:nth-child(1) { width: 30%; } /* 卡号 */
+    .table th:nth-child(2), .table td:nth-child(2) { width: 15%; } /* 有效期 */
+    .table th:nth-child(3), .table td:nth-child(3) { width: 40%; } /* 状态+时间 */
+    .table th:nth-child(4), .table td:nth-child(4) { width: 15%; } /* 操作 */
+}
+
+/* 添加表格响应式布局增强 */
+.table-responsive {
+    min-height: 200px; /* 确保表格区域有最小高度 */
+}
+
+/* 确保卡号列文本可以换行且不会过宽 */
+.text-break {
+    word-break: break-all;
+    word-wrap: break-word;
+    max-width: 150px;
 } 

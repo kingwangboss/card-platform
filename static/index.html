@@ -107,6 +107,10 @@
                                                 <span :class="card.is_activated ? 'badge bg-success' : 'badge bg-warning'">
                                                     {{ card.is_activated ? '已激活' : '未激活' }}
                                                 </span>
+                                                <div class="d-md-none small text-muted mt-1" v-if="card.is_activated">
+                                                    激活: {{ formatDate(card.activated_at_str) }}<br>
+                                                    过期: {{ formatDate(card.expires_at_str) }}
+                                                </div>
                                             </td>
                                             <td class="d-none d-md-table-cell">{{ formatDate(card.activated_at_str) }}</td>
                                             <td class="d-none d-md-table-cell">{{ formatDate(card.expires_at_str) }}</td>
