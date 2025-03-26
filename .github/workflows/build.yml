@@ -79,16 +79,24 @@ jobs:
           echo "Build completed"
           dir target\release\
 
-      - name: Check for .env files
+      - name: Check for .env files (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           echo "Checking for .env files..."
           ls -la *.env* || echo "No .env files found in root"
           
-      - name: Create .env template if not exists
+      - name: Check for .env files (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Checking for .env files..."
+          Get-ChildItem -Path . -Filter "*.env*" -ErrorAction SilentlyContinue || echo "No .env files found in root"
+          
+      - name: Create .env template if not exists (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           if [ ! -f .env.example ]; then
             echo "Creating .env.example file..."
-            cat > .env.example << 'EOL'
+            cat > .env.example << 'EOF'
             # 数据库配置
             MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/
             DATABASE_NAME=card_platform
@@ -109,7 +117,37 @@ jobs:
             LOG_FILE_SIZE=10485760
             LOG_FILE_COUNT=10
             DEFAULT_CARD_LENGTH=16
-            EOL
+            EOF
+          fi
+
+      - name: Create .env template if not exists (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "Creating .env.example file..."
+            cat > .env.example << 'EOF'
+            # 数据库配置
+            MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/
+            DATABASE_NAME=card_platform
+
+            # 安全配置
+            JWT_SECRET=your_jwt_secret_key_here
+            JWT_EXPIRATION_HOURS=24
+            ADMIN_USERNAME=admin
+            ADMIN_PASSWORD=admin123
+
+            # 服务器配置
+            SERVER_HOST=0.0.0.0
+            SERVER_PORT=5005
+
+            # 日志配置
+            LOG_LEVEL=info
+            LOG_FILE=./logs/card-platform.log
+            LOG_FILE_SIZE=10485760
+            LOG_FILE_COUNT=10
+            DEFAULT_CARD_LENGTH=16
+            EOF
           fi
 
       - name: Prepare assets (Ubuntu)
