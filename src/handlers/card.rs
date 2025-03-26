@@ -27,34 +27,46 @@ async fn generate_card(
     user: AuthenticatedUser,
     req: web::Json<CreateCardRequest>,
 ) -> HttpResponse {
-    info!("User '{}' is generating card. Request params: duration_days={}", 
-        user.username, req.duration_days);
+    // 使用 .0 或 .into_inner() 访问内部的 CreateCardRequest
+    let req_inner = req.into_inner();
+    
+    info!("User '{}' is generating card. Request params: duration_days={}, count={}", 
+        user.username, req_inner.duration_days, req_inner.count);
     
     let card_length = std::env::var("DEFAULT_CARD_LENGTH")
         .unwrap_or_else(|_| "16".to_string())
         .parse::<usize>()
         .unwrap_or(16);
     
-    let card_number: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(card_length)
-        .map(char::from)
-        .collect();
-
-    // 创建卡密时记录创建者ID
-    let mut card = Card::new(card_number.clone(), req.duration_days);
-    card.created_by = Some(user.user_id.clone());
-    card.created_by_username = Some(user.username.clone());
-
+    // 限制生成数量在1-100之间
+    let count = req_inner.count.max(1).min(100);
+    let mut cards = Vec::with_capacity(count as usize);
+    
+    for _ in 0..count {
+        let card_number: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(card_length)
+            .map(char::from)
+            .collect();
+        
+        // 创建卡密时记录创建者ID
+        let mut card = Card::new(card_number.clone(), req_inner.duration_days);
+        card.created_by = Some(user.user_id.clone());
+        card.created_by_username = Some(user.username.clone());
+        
+        cards.push(card);
+    }
+    
+    // 批量插入卡密
     match state.db.collection::<Card>("cards")
-        .insert_one(&card, None)
+        .insert_many(&cards, None)
         .await {
             Ok(_) => {
-                info!("Card '{}' generated successfully by user '{}'", card_number, user.username);
-                HttpResponse::Ok().json(card)
+                info!("Generated {} cards successfully by user '{}'", count, user.username);
+                HttpResponse::Ok().json(cards)
             },
             Err(e) => {
-                error!("Failed to generate card: {}", e);
+                error!("Failed to generate cards: {}", e);
                 HttpResponse::InternalServerError().body(e.to_string())
             },
         }

@@ -1,5 +1,7 @@
 pub mod user;
+pub mod card;  // 添加 card 模块声明
 pub use self::user::*;
+// pub use self::card::*;  // 注释掉这行，避免导入冲突
 
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
@@ -9,6 +11,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 pub struct CreateCardRequest {
     pub duration_days: i32,
+    #[serde(default = "default_count")]
+    pub count: i32,
+}
+
+fn default_count() -> i32 {
+    1
 }
 
 // 卡密激活请求
@@ -81,4 +89,7 @@ impl Card {
             created_by_username: self.created_by_username.clone(),  // 保留创建者用户名
         }
     }
-} 
+}
+
+// 删除这行，避免重复导入
+// pub use self::card::CreateCardRequest; 

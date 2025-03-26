@@ -100,7 +100,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="card in filteredCards" :key="card.id">
+                                        <tr v-for="card in displayedCards" :key="card.id">
                                             <td class="text-break">{{ card.card_number }}</td>
                                             <td>{{ card.duration_days }}天</td>
                                             <td>
@@ -125,7 +125,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div v-if="filteredCards.length === 0" class="text-center py-3">
+                            <div v-if="displayedCards.length === 0" class="text-center py-3">
                                 <p class="text-muted">没有找到卡密</p>
                             </div>
                         </div>
@@ -256,13 +256,13 @@
                             <form @submit.prevent="generateCard">
                                 <div class="mb-3">
                                     <label for="duration" class="form-label">有效期(天)</label>
-                                    <select class="form-select" id="duration" v-model="cardForm.duration_days" required>
-                                        <option value="1">1天</option>
-                                        <option value="7">7天</option>
-                                        <option value="15">15天</option>
-                                        <option value="30">30天</option>
-                                        <option value="90">90天</option>
-                                        <option value="365">365天</option>
+                                    <select class="form-select" id="duration" v-model.number="cardForm.validity_days" required>
+                                        <option :value="1">1天</option>
+                                        <option :value="7">7天</option>
+                                        <option :value="15">15天</option>
+                                        <option :value="30">30天</option>
+                                        <option :value="90">90天</option>
+                                        <option :value="365">365天</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
