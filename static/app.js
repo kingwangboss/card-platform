@@ -71,6 +71,9 @@ const app = createApp({
                 // 设置 axios 默认请求头
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
                 
+                // 确保视图切换到卡密管理
+                currentView.value = 'cards';
+                
                 // 加载初始数据
                 if (currentUser.value.role === 'ADMIN') {
                     fetchUsers();
@@ -356,6 +359,8 @@ const app = createApp({
             // 如果已登录，设置 axios 默认请求头并加载数据
             if (token.value) {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
+                // 确保默认视图是卡密管理
+                currentView.value = 'cards';
                 fetchCards();
                 if (currentUser.value && currentUser.value.role === 'ADMIN') {
                     fetchUsers();
