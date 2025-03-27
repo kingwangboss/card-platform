@@ -196,8 +196,11 @@ jobs:
           cp target/release/card-platform release/
           cp -r static release/ || echo "No static directory found"
           
-          # 只复制 .env.example 作为模板
+          # 复制 .env.example 作为模板
           cp .env.example release/.env.example || echo "Failed to copy .env.example"
+          
+          # 创建默认的 .env 文件
+          cp .env.example release/.env || echo "Failed to create .env file"
           
           # 检查文件是否已复制
           ls -la release/
@@ -215,8 +218,11 @@ jobs:
           cp target/release/card-platform.exe release/
           cp -r static release/ || echo "No static directory found"
           
-          # 只复制 .env.example 作为模板
+          # 复制 .env.example 作为模板
           cp .env.example release/.env.example || echo "Failed to copy .env.example"
+          
+          # 创建默认的 .env 文件
+          cp .env.example release/.env || echo "Failed to create .env file"
           
           # 检查文件是否已复制
           ls -la release/

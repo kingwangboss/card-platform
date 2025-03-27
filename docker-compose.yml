@@ -26,7 +26,13 @@ services:
       - DEFAULT_CARD_LENGTH=${DEFAULT_CARD_LENGTH:-16}
     volumes:
       - logs:/app/logs
-    restart: unless-stopped
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT:-5005}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   logs: 
