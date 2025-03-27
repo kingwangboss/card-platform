@@ -79,116 +79,6 @@ jobs:
           echo "Build completed"
           dir target\release\
 
-      - name: Create .env.example file (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "# 数据库配置" > .env.example
-          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.example
-          echo "DATABASE_NAME=card_platform" >> .env.example
-          echo "" >> .env.example
-          echo "# 安全配置" >> .env.example
-          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.example
-          echo "JWT_EXPIRATION_HOURS=24" >> .env.example
-          echo "ADMIN_USERNAME=admin" >> .env.example
-          echo "ADMIN_PASSWORD=admin123" >> .env.example
-          echo "" >> .env.example
-          echo "# 服务器配置" >> .env.example
-          echo "SERVER_HOST=0.0.0.0" >> .env.example
-          echo "SERVER_PORT=5005" >> .env.example
-          echo "" >> .env.example
-          echo "# 日志配置" >> .env.example
-          echo "LOG_LEVEL=info" >> .env.example
-          echo "LOG_FILE=./logs/card-platform.log" >> .env.example
-          echo "LOG_FILE_SIZE=10485760" >> .env.example
-          echo "LOG_FILE_COUNT=10" >> .env.example
-          echo "DEFAULT_CARD_LENGTH=16" >> .env.example
-          
-          # 检查文件是否创建成功
-          cat .env.example
-
-      - name: Create .env.example file (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          echo "# 数据库配置" > .env.example
-          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.example
-          echo "DATABASE_NAME=card_platform" >> .env.example
-          echo "" >> .env.example
-          echo "# 安全配置" >> .env.example
-          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.example
-          echo "JWT_EXPIRATION_HOURS=24" >> .env.example
-          echo "ADMIN_USERNAME=admin" >> .env.example
-          echo "ADMIN_PASSWORD=admin123" >> .env.example
-          echo "" >> .env.example
-          echo "# 服务器配置" >> .env.example
-          echo "SERVER_HOST=0.0.0.0" >> .env.example
-          echo "SERVER_PORT=5005" >> .env.example
-          echo "" >> .env.example
-          echo "# 日志配置" >> .env.example
-          echo "LOG_LEVEL=info" >> .env.example
-          echo "LOG_FILE=./logs/card-platform.log" >> .env.example
-          echo "LOG_FILE_SIZE=10485760" >> .env.example
-          echo "LOG_FILE_COUNT=10" >> .env.example
-          echo "DEFAULT_CARD_LENGTH=16" >> .env.example
-          
-          # 检查文件是否创建成功
-          cat .env.example
-
-      - name: Create .env.docker file (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "# 数据库配置" > .env.docker.example
-          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.docker.example
-          echo "DATABASE_NAME=card_platform" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 安全配置" >> .env.docker.example
-          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.docker.example
-          echo "JWT_EXPIRATION_HOURS=24" >> .env.docker.example
-          echo "ADMIN_USERNAME=admin" >> .env.docker.example
-          echo "ADMIN_PASSWORD=admin123" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 服务器配置" >> .env.docker.example
-          echo "SERVER_HOST=0.0.0.0" >> .env.docker.example
-          echo "SERVER_PORT=5005" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 日志配置" >> .env.docker.example
-          echo "LOG_LEVEL=info" >> .env.docker.example
-          echo "LOG_FILE=/app/logs/card-platform.log" >> .env.docker.example
-          echo "LOG_FILE_SIZE=10485760" >> .env.docker.example
-          echo "LOG_FILE_COUNT=10" >> .env.docker.example
-          echo "DEFAULT_CARD_LENGTH=16" >> .env.docker.example
-          
-          # 检查文件是否创建成功
-          cat .env.docker.example
-
-      - name: Create .env.docker file (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          echo "# 数据库配置" > .env.docker.example
-          echo "MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/" >> .env.docker.example
-          echo "DATABASE_NAME=card_platform" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 安全配置" >> .env.docker.example
-          echo "JWT_SECRET=your_jwt_secret_key_here" >> .env.docker.example
-          echo "JWT_EXPIRATION_HOURS=24" >> .env.docker.example
-          echo "ADMIN_USERNAME=admin" >> .env.docker.example
-          echo "ADMIN_PASSWORD=admin123" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 服务器配置" >> .env.docker.example
-          echo "SERVER_HOST=0.0.0.0" >> .env.docker.example
-          echo "SERVER_PORT=5005" >> .env.docker.example
-          echo "" >> .env.docker.example
-          echo "# 日志配置" >> .env.docker.example
-          echo "LOG_LEVEL=info" >> .env.docker.example
-          echo "LOG_FILE=/app/logs/card-platform.log" >> .env.docker.example
-          echo "LOG_FILE_SIZE=10485760" >> .env.docker.example
-          echo "LOG_FILE_COUNT=10" >> .env.docker.example
-          echo "DEFAULT_CARD_LENGTH=16" >> .env.docker.example
-          
-          # 检查文件是否创建成功
-          cat .env.docker.example
-
       - name: Prepare assets (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -196,14 +86,17 @@ jobs:
           cp target/release/card-platform release/
           cp -r static release/ || echo "No static directory found"
           
-          # 复制 .env.example 作为模板
+          # 直接复制项目中的配置文件
           cp .env.example release/.env.example || echo "Failed to copy .env.example"
+          cp .env.docker.example release/.env.docker.example || echo "Failed to copy .env.docker.example"
           
           # 创建默认的 .env 文件
           cp .env.example release/.env || echo "Failed to create .env file"
           
           # 检查文件是否已复制
           ls -la release/
+          echo "确认配置文件是否存在:"
+          ls -la release/.env* | head -n 5
           
           cd release
           tar -czvf "../${{ matrix.asset_name }}.tar.gz" *
@@ -218,14 +111,17 @@ jobs:
           cp target/release/card-platform.exe release/
           cp -r static release/ || echo "No static directory found"
           
-          # 复制 .env.example 作为模板
+          # 直接复制项目中的配置文件
           cp .env.example release/.env.example || echo "Failed to copy .env.example"
+          cp .env.docker.example release/.env.docker.example || echo "Failed to copy .env.docker.example"
           
           # 创建默认的 .env 文件
           cp .env.example release/.env || echo "Failed to create .env file"
           
           # 检查文件是否已复制
           ls -la release/
+          echo "确认配置文件是否存在:"
+          ls -la release/.env* | head -n 5
           
           cd release
           7z a -tzip "../${{ matrix.asset_name }}.zip" *
@@ -268,7 +164,7 @@ jobs:
         with:
           files: |
             **/card-platform-linux-amd64.tar.gz
-            **/card-platform-windows-amd64.zip
+            **/card-platform-windows-amd64.exe.zip
           draft: false
           prerelease: false
           fail_on_unmatched_files: false
