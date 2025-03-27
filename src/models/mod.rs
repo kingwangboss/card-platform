@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 // 卡密创建请求
 #[derive(Debug, Deserialize)]
 pub struct CreateCardRequest {
+    // 使用更简单的字符串处理方式
+    #[serde(deserialize_with = "deserialize_string_or_number")]
     pub duration_days: i32,
     #[serde(default = "default_count")]
     pub count: i32,
@@ -17,6 +19,26 @@ pub struct CreateCardRequest {
 
 fn default_count() -> i32 {
     1
+}
+
+// 简化的反序列化函数，可以处理字符串或数字
+fn deserialize_string_or_number<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrNumber {
+        String(String),
+        Number(i32),
+    }
+    
+    match StringOrNumber::deserialize(deserializer)? {
+        StringOrNumber::String(s) => s.parse::<i32>().map_err(D::Error::custom),
+        StringOrNumber::Number(n) => Ok(n),
+    }
 }
 
 // 卡密激活请求

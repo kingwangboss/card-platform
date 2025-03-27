@@ -50,8 +50,8 @@ const app = createApp({
         const userForm = ref({
             username: '',
             password: '',
-            email: '',
-            role: 'User'
+            email: null,  // 使用 null 而不是空字符串
+            role: 'User'  // 确保与后端枚举匹配
         });
         
         // 登录函数
@@ -246,7 +246,7 @@ const app = createApp({
             userForm.value = {
                 username: user.username,
                 password: '', // 不回显密码
-                email: user.email || '',
+                email: user.email || null, // 使用 null 而不是空字符串
                 role: user.role
             };
             showCreateUserModal.value = true;
@@ -259,24 +259,44 @@ const app = createApp({
             userForm.value = {
                 username: '',
                 password: '',
-                email: '',
+                email: null, // 使用 null 而不是空字符串
                 role: 'User'
             };
         };
         
-        // 保存用户
+        // 保存用户（创建或更新）
         const saveUser = async () => {
             try {
+                // 创建一个新对象用于发送请求
+                const formData = {
+                    username: userForm.value.username,
+                    password: userForm.value.password,
+                    role: userForm.value.role
+                };
+                
+                // 只有当 email 不为空字符串时才添加到请求中
+                if (userForm.value.email && userForm.value.email.trim() !== '') {
+                    formData.email = userForm.value.email;
+                }
+                
+                logger.info('Saving user with data:', { 
+                    username: formData.username, 
+                    hasPassword: !!formData.password, 
+                    email: formData.email || '(none)', 
+                    role: formData.role 
+                });
+                
                 if (editingUser.value) {
-                    // 更新用户
-                    const payload = { ...userForm.value };
-                    if (!payload.password) delete payload.password; // 如果密码为空，不更新密码
-                    
-                    await axios.put(`/api/users/${editingUser.value.id}`, payload);
+                    // 更新现有用户
+                    await axios.put(`/api/users/${editingUser.value.id}`, formData);
                     logger.info('Updated user:', editingUser.value.id);
                 } else {
                     // 创建新用户
-                    await axios.post('/api/users', userForm.value);
+                    await axios.post('/api/users/register', formData)
+                      .catch(error => {
+                        logger.error('详细错误信息:', error.response?.data || error);
+                        throw error;  // 继续抛出错误以便后续处理
+                      });
                     logger.info('Created new user');
                 }
                 

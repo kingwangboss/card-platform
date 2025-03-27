@@ -24,6 +24,7 @@ pub fn config() -> Scope {
 async fn register_user(
     state: web::Data<AppState>,
     req: web::Json<CreateUserRequest>,
+    _user: AuthenticatedUser,
 ) -> HttpResponse {
     info!("Attempting to register new user. Request params: username={}, role={:?}, has_email={}", 
         req.username, req.role, req.email.is_some());
@@ -53,10 +54,12 @@ async fn register_user(
         }
     };
 
+    let email = req.email.as_ref().filter(|e| !e.is_empty()).cloned();
+
     let user = User::new(
         req.username.clone(),
         password_hash,
-        req.email.clone(),
+        email,
         req.role.clone(),
     );
 
